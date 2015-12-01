@@ -1,0 +1,45 @@
+{
+  "name": "seneca-mesh",
+  "version": "0.1.0",
+  "description": "Seneca client-side load balancing transport.",
+  "main": "mesh.js",
+  "license": "MIT",
+  "author": "Richard Rodger (http://richardrodger.com)",
+  "contributors": [
+    "Richard Rodger (http://richardrodger.com)"
+  ],
+  "scripts": {
+    "test": "lab test/*.test.js -r console -v",
+    "annotate": "docco mesh.js -o doc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rjrodger/seneca-mesh"
+  },
+  "keywords": [
+    "seneca",
+    "plugin",
+    "transport",
+    "load",
+    "balance",
+    "client"
+  ],
+  "dependencies": {
+    
+  },
+  "devDependencies": {
+    "docco": "0.7.0",
+    "eslint-config-seneca": "1.1.1",
+    "eslint-plugin-standard": "1.3.1",
+    "lab": "6.2.0",
+    "seneca": "https://github.com/senecajs/seneca"
+  },
+  "peerDependencies": {
+    "seneca": "*"
+  },
+  "files": [
+    "README.md",
+    "LICENSE",
+    "mesh.js"
+  ]
+}

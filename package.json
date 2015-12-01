@@ -25,7 +25,10 @@
     "client"
   ],
   "dependencies": {
-    
+    "jsonic": "^0.2.2",
+    "lodash": "^3.10.1",
+    "swim": "https://github.com/rjrodger/swim-js",
+    "seneca-balance-client": "https://github.com/rjrodger/seneca-balance-client"
   },
   "devDependencies": {
     "docco": "0.7.0",

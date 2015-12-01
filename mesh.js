@@ -7,7 +7,7 @@
 
 var _ = require('lodash')
 var Jsonic = require('jsonic')
-var Swim = require('swim-js')
+var Swim = require('swim')
 
 
 module.exports = function (options) {
@@ -74,17 +74,17 @@ module.exports = function (options) {
         return console.log(err)
       }
 
-      console.log('START',swim.whoami(),swim.members())
+      //console.log('START',swim.whoami(),swim.members())
 
       _.each( swim.members(), updateinfo )
 
       swim.on(Swim.EventType.Change, function onChange(info) {
-        console.log('CHANGE',info);
+        //console.log('CHANGE',info);
         updateinfo(info)
       })
 
       swim.on(Swim.EventType.Update, function onUpdate(info) {
-        console.log('UPDATE',info);
+        //console.log('UPDATE',info);
         updateinfo(info)
       })
       

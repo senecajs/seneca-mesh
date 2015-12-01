@@ -15,7 +15,7 @@ module.exports = function (options) {
 
   // merge default options with any provided by the caller
   options = seneca.util.deepextend({
-    host: '127.0.0.1:49'+Math.floor((Date.now()/10)%1000),
+    host: '127.0.0.1:4'+(9000+Math.floor((Date.now()/10)%1000)),
     remotes: ['127.0.0.1:48999']
   }, options)
 
@@ -39,7 +39,7 @@ module.exports = function (options) {
       config.pin = 'null:true'
     }
 
-    console.log('JOIN',config)
+    //console.log('JOIN',config)
 
     var meta = {
       who: options.host,
@@ -74,7 +74,7 @@ module.exports = function (options) {
         return console.log(err)
       }
 
-      console.log(swim.whoami())
+      console.log('START',swim.whoami(),swim.members())
 
       _.each( swim.members(), updateinfo )
 
@@ -104,6 +104,14 @@ module.exports = function (options) {
     
 
     function add_client( config ) {
+      var actmeta = instance.find( config.pin )
+
+      // don't override local!
+      if( actmeta && !actmeta.client ) {
+        //console.log('NOTADD',config,actmeta)
+        return
+      }
+
       if( !balance_map[config.pin] ) {
         instance.client( {type:'balance', pin:config.pin} )
         balance_map[config.pin] = {}
@@ -113,20 +121,18 @@ module.exports = function (options) {
 
       var id = instance.util.pattern( _.compact(config) )
 
-      if( !target_map[id] ) {
-        target_map[id] = true
+      target_map[id] = true
 
-        instance.act( 
-          'role:transport,type:balance,add:client', 
-          {config:config} ) 
-      }
+      instance.act( 
+        'role:transport,type:balance,add:client', 
+        {config:config} ) 
 
-      console.log( 'ADD', config, balance_map )
+      //console.log( 'ADD', config, balance_map )
     }
 
     function remove_client( config ) {
       if( !balance_map[config.pin] ) {
-        console.log('RNF',config.pin)
+        //console.log('RNF',config.pin)
         return
       }
 
@@ -135,7 +141,7 @@ module.exports = function (options) {
       var id = instance.util.pattern( _.compact(config) )
 
       if( !target_map[id] ) {
-        console.log('RTNF',id)
+        //console.log('RTNF',id)
         return
       }
 
@@ -145,7 +151,7 @@ module.exports = function (options) {
         'role:transport,type:balance,remove:client', 
         {config:config} ) 
 
-      console.log( 'REMOVE', config, balance_map )
+      //console.log( 'REMOVE', config, balance_map )
     }
   }
 }

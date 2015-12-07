@@ -13,42 +13,72 @@ var Swim = require('swim')
 module.exports = function (options) {
   var seneca = this
 
+  // become a base node
+  if( options.base ) {
+    options.host = '127.0.0.1'
+    options.port = 39999
+    options.pin  = 'role:mesh,base:true'
+    options.auto = true
+  }
+
   // merge default options with any provided by the caller
   options = seneca.util.deepextend({
-    host: '127.0.0.1:4'+(9000+Math.floor((Date.now()/10)%1000)),
-    remotes: ['127.0.0.1:48999']
+    host: '127.0.0.1',
+    port: function() {
+      return 40000 + Math.floor((10000*Math.random()))
+    },
+    remotes: ['127.0.0.1:39999']
   }, options)
 
-  // TODO: hmm?
-  seneca.use('balance-client')
+
+  seneca.use( 'balance-client' )
 
   seneca.add( 'role:transport,cmd:listen', transport_listen )
+
+  
+  if( options.auto ) {
+    seneca.listen( {
+      // seneca-transport will retry unti it finds a free port
+      port: function() {
+        return 50000 + Math.floor((10000*Math.random()))
+      },
+      pin: options.pin
+    })
+  }
+
 
   function transport_listen ( msg, done ) {
     this.prior( msg, function( err, out ) {
       if( !err ) {
         // TODO: pins?
-        join( this, msg.config )
+        join( this, out, done )
       }
       done( err, out )
     })
   }
 
-  function join( instance, config ) {
+
+  var attempts = 0, max_attempts = 11
+
+  function join( instance, config, done ) {
     if( !config.pin ) {
       config.pin = 'null:true'
     }
 
     //console.log('JOIN',config)
 
+    var host = options.host + ( options.port ? 
+                               ':'+(_.isFunction(options.port) ? 
+                                    options.port() : options.port ) : '' )
+
     var meta = {
-      who: options.host,
+      who: host,
       listen: config
     }
 
     var opts = {
       local: {
-        host: options.host,
+        host: host,
         meta: meta,
         incarnation: Date.now()
       },
@@ -64,8 +94,26 @@ module.exports = function (options) {
     
     var swim = new Swim(opts)
 
-    swim.on(Swim.EventType.Error, console.log)
-    swim.on(Swim.EventType.Ready, console.log)
+    swim.on(Swim.EventType.Error, function(err) {
+      if ('EADDRINUSE' === err.code && attempts < max_attempts) {
+        attempts++
+        setTimeout( 
+          function() {
+            join( instance, config, done )
+          }, 
+          100 + Math.floor(Math.random() * 222)
+        )
+        return
+      }
+      done(err)
+    })
+
+
+    // TODO: this is not being called!
+    swim.on(Swim.EventType.Ready, function(){
+      //console.log('READY')
+      done( null, config )
+    })
 
     var remotes = _.compact(options.remotes)
 
@@ -80,11 +128,11 @@ module.exports = function (options) {
 
       swim.on(Swim.EventType.Change, function onChange(info) {
         //console.log('CHANGE',info);
-        updateinfo(info)
+        //updateinfo(info)
       })
 
       swim.on(Swim.EventType.Update, function onUpdate(info) {
-        //console.log('UPDATE',info);
+        console.log('UPDATE',info);
         updateinfo(info)
       })
       

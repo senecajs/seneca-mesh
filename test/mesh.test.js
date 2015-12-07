@@ -20,21 +20,21 @@ describe('#balance-client', function () {
     var s0, s1, c0
 
     s0 = 
-      Seneca()
+      Seneca({log:'test'})
       .error(done)
       .listen(44440)
       .add('a:1',function(){this.good({x:0})})
       .ready( function () {
       
         s1 = 
-          Seneca()
+          Seneca({log:'test'})
           .error(done)
           .listen(44441)
           .add('a:1',function(){this.good({x:1})})
           .ready( function () {
       
             c0 = 
-              Seneca()
+              Seneca({log:'test'})
               .error(done)
               .use('..')
               .client( {type:'balance', pin:'a:1'} )
@@ -52,7 +52,13 @@ describe('#balance-client', function () {
                     //console.log(0,e,o)
                     Assert.equal(0,o.x)
 
-                    done()
+                    c0.close( function(){
+                      s0.close( function(){
+                        s1.close( function(){
+                          done()
+                        })
+                      })
+                    })
                   })
                 })
               })
@@ -65,21 +71,21 @@ describe('#balance-client', function () {
     var s0, s1, c0
 
     s0 = 
-      Seneca()
+      Seneca({log:'test'})
       .error(done)
       .listen(44440)
       .add('a:1',function(){this.good({x:0})})
       .ready( function () {
       
         s1 = 
-          Seneca()
+          Seneca({log:'test'})
           .error(done)
           .listen(44441)
           .add('a:1',function(){this.good({x:1})})
           .ready( function () {
       
             c0 = 
-              Seneca()
+              Seneca({log:'test'})
               .error(done)
               .use('..')
               .client( {type:'balance', pin:'a:1'} )

@@ -45,7 +45,8 @@ module.exports = function (options) {
       port: function() {
         return 50000 + Math.floor((10000*Math.random()))
       },
-      pin: options.pin
+      pin: options.pin,
+      model: options.model || 'actor'
     })
   }
 
@@ -181,7 +182,7 @@ module.exports = function (options) {
         }
 
         if( !balance_map[pin_id] ) {
-          instance.root.client( {type:'balance', pin:pin} )
+          instance.root.client( {type:'balance', pin:pin, model:config.model} )
           balance_map[pin_id] = {}
         }
 

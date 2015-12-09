@@ -1,13 +1,12 @@
 ![Seneca](http://senecajs.org/files/assets/seneca-logo.png)
-> A [Seneca.js][] transport plugin that provides various client-side load balancing strategies
+> A [Seneca.js][] transport plugin that provides uses the SWIM gossip algorithm for automatic configuration of the microservice network.
 
 # seneca-mesh
 [![npm version][npm-badge]][npm-url]
 [![Build Status][travis-badge]][travis-url]
 [![Gitter][gitter-badge]][gitter-url]
 
-This module is a plugin for the Seneca framework. It provides a
-transport client that load balances outbound messages on a per-pattern basis.
+This module is a plugin for the Seneca framework.
 
 - __Tested on:__ Seneca 0.8
 - __Node:__ 0.10, 0.12, 4, 5

@@ -13,6 +13,7 @@ var Swim = require('swim')
 module.exports = function (options) {
   var seneca = this
 
+
   // become a base node
   if( options.base ) {
     options.host = '127.0.0.1'
@@ -31,13 +32,15 @@ module.exports = function (options) {
   }, options)
 
 
+  options.pin = options.pin || options.pins
+
   seneca.use( 'balance-client' )
 
   seneca.add( 'role:transport,cmd:listen', transport_listen )
 
   
   if( options.auto ) {
-    seneca.listen( {
+    seneca.root.listen( {
       // seneca-transport will retry unti it finds a free port
       port: function() {
         return 50000 + Math.floor((10000*Math.random()))
@@ -50,7 +53,6 @@ module.exports = function (options) {
   function transport_listen ( msg, done ) {
     this.prior( msg, function( err, out ) {
       if( !err ) {
-        // TODO: pins?
         join( this, out, done )
       }
       done( err, out )
@@ -61,11 +63,11 @@ module.exports = function (options) {
   var attempts = 0, max_attempts = 11
 
   function join( instance, config, done ) {
+    config = config || {}
+
     if( !config.pin ) {
       config.pin = 'null:true'
     }
-
-    //console.log('JOIN',config)
 
     var host = options.host + ( options.port ? 
                                ':'+(_.isFunction(options.port) ? 
@@ -105,13 +107,15 @@ module.exports = function (options) {
         )
         return
       }
-      done(err)
+      else if( err ) {
+        // TODO: duplicate call
+        return done(err)
+      }
     })
 
 
     // TODO: this is not being called!
     swim.on(Swim.EventType.Ready, function(){
-      //console.log('READY')
       done( null, config )
     })
 
@@ -119,20 +123,18 @@ module.exports = function (options) {
 
     swim.bootstrap( remotes, function onBootstrap(err) {
       if (err) {
-        return console.log(err)
+        seneca.log.warn(err)
+        return
       }
-
-      //console.log('START',swim.whoami(),swim.members())
 
       _.each( swim.members(), updateinfo )
 
       swim.on(Swim.EventType.Change, function onChange(info) {
-        //console.log('CHANGE',info);
+        // TODO: not used
         //updateinfo(info)
       })
 
       swim.on(Swim.EventType.Update, function onUpdate(info) {
-        console.log('UPDATE',info);
         updateinfo(info)
       })
       
@@ -148,58 +150,78 @@ module.exports = function (options) {
       }
     }
 
+
     var balance_map = {}
-    
 
     function add_client( config ) {
-      var actmeta = instance.find( config.pin )
+      // TODO: don't override local!
+      // var actmeta = instance.find( config.pin )
+      // if( actmeta && !actmeta.client ) {
+      //   return
+      // }
 
-      // don't override local!
-      if( actmeta && !actmeta.client ) {
-        //console.log('NOTADD',config,actmeta)
-        return
-      }
+      var pins = config.pins || config.pin
+      pins = _.isArray(pins) ? pins : [pins]
 
-      if( !balance_map[config.pin] ) {
-        instance.client( {type:'balance', pin:config.pin} )
-        balance_map[config.pin] = {}
-      }
+      _.each( pins, function( pin ) {
+        var pin_id = instance.util.pattern(pin)
 
-      var target_map = (balance_map[config.pin] = balance_map[config.pin] || {})
+        var pin_config = _.clone( config )
+        delete pin_config.pins
+        delete pin_config.pin
 
-      var id = instance.util.pattern( _.compact(config) )
+        pin_config.pin = pin_id
 
-      target_map[id] = true
+        var id = instance.util.pattern( pin_config )
 
-      instance.act( 
-        'role:transport,type:balance,add:client', 
-        {config:config} ) 
+        // TODO: how to handle local override?
+        var actmeta = instance.find( pin )
+        if( actmeta && !actmeta.client ) {
+          return
+        }
 
-      //console.log( 'ADD', config, balance_map )
+        if( !balance_map[pin_id] ) {
+          instance.root.client( {type:'balance', pin:pin} )
+          balance_map[pin_id] = {}
+        }
+
+        var target_map = (balance_map[pin_id] = balance_map[pin_id] || {})
+
+        target_map[id] = true
+        
+        instance.act( 
+          'role:transport,type:balance,add:client', 
+          {config:pin_config} ) 
+      })
     }
 
+
     function remove_client( config ) {
-      if( !balance_map[config.pin] ) {
-        //console.log('RNF',config.pin)
-        return
-      }
+      var pins = config.pins || config.pin
+      pins = _.isArray(pins) ? pins : [pins]
 
-      var target_map = balance_map[config.pin]
+      _.each( pins, function( pin ) {
+        var pin_id = instance.util.pattern(pin)
 
-      var id = instance.util.pattern( _.compact(config) )
+        var pin_config = _.clone( config )
+        delete pin_config.pins
+        delete pin_config.pin
 
-      if( !target_map[id] ) {
-        //console.log('RTNF',id)
-        return
-      }
+        pin_config.pin = pin_id
 
-      delete target_map[id]
+        var id = instance.util.pattern( pin_config )
 
-      instance.act( 
-        'role:transport,type:balance,remove:client', 
-        {config:config} ) 
+        var target_map = balance_map[pin_id]
 
-      //console.log( 'REMOVE', config, balance_map )
+        if( target_map ) {
+          delete target_map[id]
+        }
+
+        instance.act( 
+          'role:transport,type:balance,remove:client', 
+          {config:pin_config} ) 
+      })
+
     }
   }
 }

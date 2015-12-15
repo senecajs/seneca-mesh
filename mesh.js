@@ -73,7 +73,6 @@ module.exports = function (options) {
     var host = options.host + ( options.port ? 
                                ':'+(_.isFunction(options.port) ? 
                                     options.port() : options.port ) : '' )
-
     var meta = {
       who: host,
       listen: config
@@ -189,7 +188,7 @@ module.exports = function (options) {
         var target_map = (balance_map[pin_id] = balance_map[pin_id] || {})
 
         target_map[id] = true
-        
+
         instance.act( 
           'role:transport,type:balance,add:client', 
           {config:pin_config} ) 

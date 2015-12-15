@@ -27,15 +27,15 @@
   "dependencies": {
     "jsonic": "^0.2.2",
     "lodash": "^3.10.1",
-    "swim": "https://github.com/rjrodger/swim-js",
-    "seneca-balance-client": "0.1.0"
+    "swim": "https://github.com/rjrodger/swim-js"
   },
   "devDependencies": {
     "docco": "0.7.0",
     "eslint-config-seneca": "1.1.1",
     "eslint-plugin-standard": "1.3.1",
     "lab": "6.2.0",
-    "seneca": "https://github.com/senecajs/seneca"
+    "seneca": "https://github.com/senecajs/seneca",
+    "seneca-balance-client": "https://github.com/rjrodger/seneca-balance-client"
   },
   "peerDependencies": {
     "seneca": "*"

@@ -1,5 +1,10 @@
 ![Seneca](http://senecajs.org/files/assets/seneca-logo.png)
-> A [Seneca.js][] transport plugin that provides uses the SWIM gossip algorithm for automatic configuration of the microservice network.
+
+> A [Seneca.js][] transport plugin that provides uses the SWIM gossip
+  algorithm for automatic configuration of the microservice network.
+
+For a detailed example, see Iteration 05 of the [nodezoo
+workshop](https://github.com/rjrodger/nodezoo).
 
 # seneca-mesh
 [![npm version][npm-badge]][npm-url]
@@ -33,8 +38,11 @@ help get you up and running quickly.
 ## Install
 
 ```sh
+npm install seneca-balance-client
 npm install seneca-mesh
 ```
+
+The _seneca-mesh_ plugin depends on the [seneca-balance-client](https://github.com/rjrodger/seneca-balance-client) plugin.
 
 And in your code:
 
@@ -52,10 +60,64 @@ npm run test
 
 ## Quick Example
 
+Base node, so that other nodes have a known reference point to join the network.
+
+### base.js
+
 ```js
-// TODO
+require('seneca')()
+  .use('mesh',{base:true})
+
+// start first!
+// $ node base.js
 ```
 
+### service-foo.js
+
+```js
+require('seneca')()
+  .add( 'foo:1', function (msg, done) {
+    done( null, {x:1,v:100+msg.v} )
+  })
+  .use('..', { auto:true, pin:'foo:1' })
+
+  .ready( function () {
+    var seneca = this
+
+    setInterval( function() {
+      seneca.act('bar:1,v:2', console.log)
+    }, 3000 )
+  })
+
+// $ node service-foo.js
+```
+
+
+### service-bar.js
+
+```js
+require('seneca')()
+  .add( 'bar:1', function (msg, done) {
+    done( null, {x:1,v:100+msg.v} )
+  })
+  .use('..', { auto:true, pin:'bar:1' })
+
+  .ready( function () {
+    var seneca = this
+
+    setInterval( function() {
+      seneca.act('foo:1,v:2', console.log)
+    }, 3000 )
+  })
+
+// $ node service-bar.js
+```
+
+The _foo_ and _bar_ services call each other, but neither requires
+configuration information!
+
+
+<!--
 ## Usage
 
 TODO
@@ -64,6 +126,8 @@ TODO
 ## Releases
 
 TODO
+-->
+
 
 ## Contributing
 

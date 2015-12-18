@@ -1,6 +1,6 @@
 ![Seneca](http://senecajs.org/files/assets/seneca-logo.png)
 
-> A [Seneca.js][] transport plugin that provides uses the SWIM gossip
+> A [Seneca.js][] transport plugin that uses the SWIM gossip
   algorithm for automatic configuration of the microservice network.
 
 For a detailed example, see Iteration 05 of the [nodezoo
@@ -79,12 +79,17 @@ require('seneca')()
   .add( 'foo:1', function (msg, done) {
     done( null, {x:1,v:100+msg.v} )
   })
-  .use('..', { auto:true, pin:'foo:1' })
+
+  // this service handles foo:1 messages
+  .use('mesh', { auto:true, pin:'foo:1' })
 
   .ready( function () {
     var seneca = this
 
     setInterval( function() {
+
+      // use bar:1, even though location of
+      // service-bar is not configured!
       seneca.act('bar:1,v:2', console.log)
     }, 3000 )
   })
@@ -100,12 +105,17 @@ require('seneca')()
   .add( 'bar:1', function (msg, done) {
     done( null, {x:1,v:100+msg.v} )
   })
-  .use('..', { auto:true, pin:'bar:1' })
+
+  // this service handles bar:1 messages
+  .use('mesh', { auto:true, pin:'bar:1' })
 
   .ready( function () {
     var seneca = this
 
     setInterval( function() {
+
+      // use foo:1, even though location of
+      // service-foo is not configured!
       seneca.act('foo:1,v:2', console.log)
     }, 3000 )
   })

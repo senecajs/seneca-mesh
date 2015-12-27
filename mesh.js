@@ -32,7 +32,11 @@ module.exports = function (options) {
   }, options)
 
 
+  // single pin(s) entry supported as a convenience
   options.pin = options.pin || options.pins
+
+  var listen = options.listen || [{pin:options.pin}]
+
 
   seneca.use( 'balance-client' )
 
@@ -40,13 +44,17 @@ module.exports = function (options) {
 
   
   if( options.auto ) {
-    seneca.root.listen( {
-      // seneca-transport will retry unti it finds a free port
-      port: function() {
-        return 50000 + Math.floor((10000*Math.random()))
-      },
-      pin: options.pin,
-      model: options.model || 'actor'
+    _.each( listen, function( listen_opts ) {
+      var pin = listen_opts.pin || listen_opts.pins
+
+      seneca.root.listen( {
+        // seneca-transport will retry until it finds a free port
+        port: function() {
+          return 50000 + Math.floor((10000*Math.random()))
+        },
+        pin: listen_opts.pin,
+        model: listen_opts.model || 'actor'
+      })
     })
   }
 
@@ -63,6 +71,8 @@ module.exports = function (options) {
 
   var attempts = 0, max_attempts = 11
 
+  var balance_map = {}
+
   function join( instance, config, done ) {
     config = config || {}
 
@@ -75,7 +85,8 @@ module.exports = function (options) {
                                     options.port() : options.port ) : '' )
     var meta = {
       who: host,
-      listen: config
+      listen: config,
+      instance: instance.id
     }
 
     var opts = {
@@ -142,6 +153,11 @@ module.exports = function (options) {
 
 
     function updateinfo( m ) {
+      // Ignore updates about myself
+      if( m.meta.instance === seneca.id ) {
+        return
+      }
+        
       if( 0 === m.state ) {
         add_client( m.meta.listen )
       }
@@ -151,15 +167,7 @@ module.exports = function (options) {
     }
 
 
-    var balance_map = {}
-
     function add_client( config ) {
-      // TODO: don't override local!
-      // var actmeta = instance.find( config.pin )
-      // if( actmeta && !actmeta.client ) {
-      //   return
-      // }
-
       var pins = config.pins || config.pin
       pins = _.isArray(pins) ? pins : [pins]
 
@@ -176,11 +184,14 @@ module.exports = function (options) {
 
         // TODO: how to handle local override?
         var actmeta = instance.find( pin )
-        if( actmeta && !actmeta.client ) {
+        var ignore_client = !!(actmeta && !actmeta.client)
+
+        if( ignore_client ) {
           return
         }
 
         if( !balance_map[pin_id] ) {
+          //console.log('M AC AB '+pin_id)
           instance.root.client( {type:'balance', pin:pin, model:config.model} )
           balance_map[pin_id] = {}
         }

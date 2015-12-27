@@ -13,7 +13,7 @@ workshop](https://github.com/rjrodger/nodezoo).
 
 This module is a plugin for the Seneca framework.
 
-- __Tested on:__ Seneca 0.8
+- __Tested on:__ Seneca 0.9
 - __Node:__ 0.10, 0.12, 4, 5
 - __License:__ [MIT][]
 

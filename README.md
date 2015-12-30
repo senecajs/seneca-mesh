@@ -9,6 +9,8 @@ workshop](https://github.com/rjrodger/nodezoo).
 # seneca-mesh
 [![npm version][npm-badge]][npm-url]
 [![Build Status][travis-badge]][travis-url]
+[![Coverage Status][coveralls-badge]][coveralls-url]
+[![Dependency Status][david-badge]][david-url]
 [![Gitter][gitter-badge]][gitter-url]
 
 This module is a plugin for the Seneca framework.
@@ -48,7 +50,7 @@ And in your code:
 
 ```js
 require('seneca')()
-  .use('mesh', { ... options ... })
+  .use('mesh', { /* options */ })
 ```
 
 ## Test
@@ -158,6 +160,10 @@ Licensed under [MIT][].
 [senecajs.org]: http://senecajs.org/
 [travis-badge]: https://travis-ci.org/rjrodger/seneca-mesh.svg
 [travis-url]: https://travis-ci.org/rjrodger/seneca-mesh
+[coveralls-badge]:https://coveralls.io/repos/rjrodger/seneca-mesh/badge.svg?branch=master&service=github
+[coveralls-url]: https://coveralls.io/github/rjrodger/seneca-mesh?branch=master
+[david-badge]: https://david-dm.org/rjrodger/seneca-mesh.svg
+[david-url]: https://david-dm.org/rjrodger/seneca-mesh
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-url]: https://gitter.im/rjrodger/seneca
 [github issue]: https://github.com/rjrodger/seneca-mesh/issues

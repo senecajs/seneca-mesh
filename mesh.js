@@ -1,6 +1,6 @@
 /*
   MIT License,
-  Copyright (c) 2015, Richard Rodger and other contributors.
+  Copyright (c) 2015-2016, Richard Rodger and other contributors.
 */
 
 'use strict'
@@ -8,166 +8,114 @@
 var _ = require('lodash')
 var Jsonic = require('jsonic')
 var Swim = require('swim')
+var Sneeze = require('sneeze')
+var Nid = require('nid')
 
 
-module.exports = function (options) {
+module.exports = function mesh (options) {
   var seneca = this
 
-
-  // become a base node
-  if( options.base ) {
-    options.host = '127.0.0.1'
-    options.port = 39999
-    options.pin  = 'role:mesh,base:true'
-    options.auto = true
-  }
-
-  // merge default options with any provided by the caller
+  var balance_map = {}
+  var mid = Nid()
+  
   options = seneca.util.deepextend({
-    host: '127.0.0.1',
-    port: function() {
-      return 40000 + Math.floor((10000*Math.random()))
-    },
-    remotes: ['127.0.0.1:39999']
+    auto: true
   }, options)
 
+  // options.base is to deprecated
+  var isbase = !!(options.isbase || options.base)
 
-  // single pin(s) entry supported as a convenience
-  options.pin = options.pin || options.pins
+  var pin = options.pin || options.pins
 
-  var listen = options.listen || [{pin:options.pin}]
+  if( isbase ) {
+    pin = pin || 'role:mesh,base:true'
+  }
 
+  // options.remotes is to deprecated
+  var bases = options.bases || options.remotes
 
-  seneca.use( 'balance-client' )
+  var tag = options.tag
+
+  var sneeze_opts = options.sneeze || {}
+  sneeze_opts.isbase = sneeze_opts.isbase || isbase
+  sneeze_opts.bases = sneeze_opts.bases || bases || void 0
+  sneeze_opts.tag = sneeze_opts.tag || tag || 'seneca'
+  sneeze_opts.identifier = sneeze_opts.identifier || seneca.id
+
+  var listen = options.listen || [{pin:pin}]
+
+  seneca.use( 'balance-client$mesh~'+mid )
 
   seneca.add( 'role:transport,cmd:listen', transport_listen )
 
-  
+
+  // call seneca.listen as a convenience
+  // subsequence seneca.listen calls will still publish to network
   if( options.auto ) {
     _.each( listen, function( listen_opts ) {
-      var pin = listen_opts.pin || listen_opts.pins
 
-      seneca.root.listen( {
-        // seneca-transport will retry until it finds a free port
-        port: function() {
-          return 50000 + Math.floor((10000*Math.random()))
-        },
-        pin: listen_opts.pin,
-        model: listen_opts.model || 'actor'
-      })
+      listen_opts.port = null != listen_opts.port ? listen_opts.port : function() {
+        return 50000 + Math.floor((10000*Math.random()))
+      }
+
+      listen_opts.model = listen_opts.model || 'actor'
+
+      //console.log('listen',seneca.id,listen_opts)
+      seneca.root.listen( listen_opts )
     })
   }
 
 
   function transport_listen ( msg, done ) {
+    //console.log( 'transport_listen',seneca.id,seneca.util.clean(msg))
     this.prior( msg, function( err, out ) {
-      if( !err ) {
-        join( this, out, done )
-      }
-      done( err, out )
+      if( err ) return done( err )
+
+      join( this, out, function() {
+        //console.log('done',seneca.util.clean(out))
+        done()
+      })
     })
   }
 
-
-  var attempts = 0, max_attempts = 11
-
-  var balance_map = {}
-
+  
   function join( instance, config, done ) {
     config = config || {}
 
-    if( !config.pin ) {
+    if( !config.pin && !config.pins ) {
       config.pin = 'null:true'
     }
 
-    var host = options.host + ( options.port ? 
-                               ':'+(_.isFunction(options.port) ? 
-                                    options.port() : options.port ) : '' )
+    //console.log('join',instance.id,seneca.util.clean(config),sneeze_opts)
+
+    //sneeze_opts.silent = false
+    var sneeze = Sneeze( sneeze_opts )
+    
     var meta = {
-      who: host,
-      listen: config,
+      config: config,
       instance: instance.id
     }
 
-    var opts = {
-      local: {
-        host: host,
-        meta: meta,
-        incarnation: Date.now()
-      },
-      codec: 'msgpack',
-      disseminationFactor: 15,
-      interval: 100,
-      joinTimeout: 200,
-      pingTimeout: 20,
-      pingReqTimeout: 60,
-      pingReqGroupSize: 3,
-      udp: {maxDgramSize: 512},
-    }
-    
-    var swim = new Swim(opts)
+    sneeze.on('error', function(err) {
+      seneca.log.warn(err)
+    })
+    sneeze.on('add', add_client)
+    sneeze.on('remove', remove_client)
+    sneeze.on('ready', done)
 
-    swim.on(Swim.EventType.Error, function(err) {
-      if ('EADDRINUSE' === err.code && attempts < max_attempts) {
-        attempts++
-        setTimeout( 
-          function() {
-            join( instance, config, done )
-          }, 
-          100 + Math.floor(Math.random() * 222)
-        )
-        return
-      }
-      else if( err ) {
-        // TODO: duplicate call
-        return done(err)
+    seneca.sub('role:seneca,cmd:close', function(){
+      //console.log('CLOSE',seneca.id)
+      if( sneeze ) {
+        sneeze.leave()
       }
     })
 
+    sneeze.join( meta )
 
-    // TODO: this is not being called!
-    swim.on(Swim.EventType.Ready, function(){
-      done( null, config )
-    })
+    function add_client( meta ) {
+      var config = meta.config
+      //console.log('add_client',seneca.id,config)
 
-    var remotes = _.compact(options.remotes)
-
-    swim.bootstrap( remotes, function onBootstrap(err) {
-      if (err) {
-        seneca.log.warn(err)
-        return
-      }
-
-      _.each( swim.members(), updateinfo )
-
-      swim.on(Swim.EventType.Change, function onChange(info) {
-        // TODO: not used
-        //updateinfo(info)
-      })
-
-      swim.on(Swim.EventType.Update, function onUpdate(info) {
-        updateinfo(info)
-      })
-      
-    })
-
-
-    function updateinfo( m ) {
-      // Ignore updates about myself
-      if( m.meta.instance === seneca.id ) {
-        return
-      }
-        
-      if( 0 === m.state ) {
-        add_client( m.meta.listen )
-      }
-      else {
-        remove_client( m.meta.listen )
-      }
-    }
-
-
-    function add_client( config ) {
       var pins = config.pins || config.pin
       pins = _.isArray(pins) ? pins : [pins]
 
@@ -207,7 +155,10 @@ module.exports = function (options) {
     }
 
 
-    function remove_client( config ) {
+    function remove_client( meta ) {
+      var config = meta.config
+      //console.log('REMOVE',seneca.id,config)
+
       var pins = config.pins || config.pin
       pins = _.isArray(pins) ? pins : [pins]
 
@@ -228,11 +179,11 @@ module.exports = function (options) {
           delete target_map[id]
         }
 
+        //console.log( 'TREM', seneca.id,pin_config )
         instance.act( 
           'role:transport,type:balance,remove:client', 
           {config:pin_config} ) 
       })
-
     }
   }
 }

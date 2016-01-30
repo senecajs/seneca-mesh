@@ -20,56 +20,69 @@ describe('#mesh', function () {
     var b0, s0, s1, c0
 
     b0 = 
-      Seneca({log:'test'})
+      Seneca({tag:'b0', log:'test'})
       .error(done)
-      .use('..',{base:true})
+      .use('..',{isbase:true})
       .ready( function () {
 
         s0 = 
-          Seneca({log:'test'})
+          Seneca({tag:'s0', log:'test'})
           .error(done)
-          .use('..',{auto:true,pin:'a:1'})
+          .use('..',{pin:'a:1'})
           .add('a:1',function(){this.good({x:0})})
           .ready( function () {
+
             s1 = 
-              Seneca({log:'test'})
+              Seneca({tag:'s1', log:'test'})
               .error(done)
-              .use('..',{auto:true,pin:'a:1'})
+              .use('..',{pins:'a:1'})
               .add('a:1',function(){this.good({x:1})})
               .ready( function () {
+
                 c0 = 
-                  Seneca({log:'test'})
+                  Seneca({tag:'c0', log:'test'})
                   .error(done)
-                  .use('..',{auto:true})
+                  .use('..',{})
                   .ready( function () {
 
-                    setTimeout( function() {
-
-                      c0.act('a:1',function(e,o){
+                      c0.act('a:1,s:0',function(e,o){
                         //console.log(0,e,o)
                         Assert.equal(0,o.x)
 
-                        c0.act('a:1',function(e,o){
+                        c0.act('a:1,s:1',function(e,o){
                           //console.log(0,e,o)
                           Assert.equal(1,o.x)
 
-                          c0.act('a:1',function(e,o){
+                          c0.act('a:1,s:2',function(e,o){
                             //console.log(0,e,o)
                             Assert.equal(0,o.x)
 
-                            c0.close( function(){
-                              s0.close( function(){
-                                s1.close( function(){
-                                  b0.close( function(){
-                                    done()
+                            s0.close( function() {
+                              
+                              setTimeout( function() {
+                                c0.act('a:1,s:3',function(e,o){
+                                  //console.log(0,e,o)
+                                  Assert.equal(1,o.x)
+
+                                  c0.act('a:1,s:4',function(e,o){
+                                    //console.log(0,e,o)
+                                    Assert.equal(1,o.x)
+                              
+                                    c0.close( function(){
+                                      s1.close( function(){
+                                        b0.close( function(){
+                                          done()
+                                        })
+                                      })
+                                    })
                                   })
                                 })
-                              })
+                              },555)
+                           
                             })
                           })
                         })
                       })
-                    },1000)
                   })
               })
           })

@@ -9,7 +9,7 @@
     "Richard Rodger (http://richardrodger.com)"
   ],
   "scripts": {
-    "test": "lab test/*.test.js -r console -v",
+    "test": "lab test/*.test.js -r console -t 80 -v",
     "annotate": "docco mesh.js -o doc"
   },
   "repository": {
@@ -27,6 +27,8 @@
   "dependencies": {
     "jsonic": "^0.2.2",
     "lodash": "^3.10.1",
+    "nid": "^0.3.2",
+    "sneeze": "^0.3.2",
     "swim": "https://github.com/rjrodger/swim-js"
   },
   "devDependencies": {

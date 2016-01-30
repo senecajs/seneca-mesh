@@ -1,13 +1,13 @@
-require('seneca')()
+require('seneca')({tag:'bar'})
   .add( 'bar:1', function (msg, done) {
     done( null, {y:1,v:100+msg.v} )
   })
-  .use('..', { auto:true, pin:'bar:1' })
+  .use('..', { pin:'bar:1', sneeze:{silent:false} })
 
   .ready( function () {
     var seneca = this
 
     setInterval( function() {
-      seneca.act('foo:1,v:1', console.log)
+      seneca.act('foo:1,v:1,default$:{}', console.log)
     }, 3000 )
   })

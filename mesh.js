@@ -19,7 +19,8 @@ module.exports = function mesh (options) {
   var mid = Nid()
   
   options = seneca.util.deepextend({
-    auto: true
+    auto: true,
+    make_entry: _.noop
   }, options)
 
   // options.base is to deprecated
@@ -39,8 +40,15 @@ module.exports = function mesh (options) {
   var sneeze_opts = options.sneeze || {}
   sneeze_opts.isbase = sneeze_opts.isbase || isbase
   sneeze_opts.bases = sneeze_opts.bases || bases || void 0
-  sneeze_opts.tag = sneeze_opts.tag || tag || 'seneca'
+  sneeze_opts.port = sneeze_opts.port || options.port || void 0
+  sneeze_opts.host = sneeze_opts.host || options.host || void 0
   sneeze_opts.identifier = sneeze_opts.identifier || seneca.id
+
+  sneeze_opts.tag 
+    =  ( void 0 !== sneeze_opts.tag ? sneeze_opts.tag : 
+         void 0 !== tag ? 
+         (null === tag ? null : 'seneca~'+tag) 
+         : 'seneca~mesh' )
 
   var listen = options.listen || [{pin:pin}]
 
@@ -48,9 +56,8 @@ module.exports = function mesh (options) {
 
   seneca.add( 'role:transport,cmd:listen', transport_listen )
 
-
   // call seneca.listen as a convenience
-  // subsequence seneca.listen calls will still publish to network
+  // subsequent seneca.listen calls will still publish to network
   if( options.auto ) {
     _.each( listen, function( listen_opts ) {
 
@@ -60,19 +67,16 @@ module.exports = function mesh (options) {
 
       listen_opts.model = listen_opts.model || 'actor'
 
-      //console.log('listen',seneca.id,listen_opts)
       seneca.root.listen( listen_opts )
     })
   }
 
 
-  function transport_listen ( msg, done ) {
-    //console.log( 'transport_listen',seneca.id,seneca.util.clean(msg))
+  function transport_listen (msg, done) {
     this.prior( msg, function( err, out ) {
       if( err ) return done( err )
 
       join( this, out, function() {
-        //console.log('done',seneca.util.clean(out))
         done()
       })
     })
@@ -86,9 +90,6 @@ module.exports = function mesh (options) {
       config.pin = 'null:true'
     }
 
-    //console.log('join',instance.id,seneca.util.clean(config),sneeze_opts)
-
-    //sneeze_opts.silent = false
     var sneeze = Sneeze( sneeze_opts )
     
     var meta = {
@@ -104,19 +105,49 @@ module.exports = function mesh (options) {
     sneeze.on('ready', done)
 
     seneca.sub('role:seneca,cmd:close', function(){
-      //console.log('CLOSE',seneca.id)
       if( sneeze ) {
         sneeze.leave()
       }
     })
 
+
+    seneca.add( 'role:mesh,get:members', function get_members (msg, done) {
+      var members = []
+
+      _.each( sneeze.members(), function(member) {
+        var entry = options.make_entry(member)
+
+        if( null == entry ) {
+          entry = member
+
+          if( member.tag$.match(/^seneca~/) ) {
+            entry = {
+              pin: member.config.pin,
+              port: member.config.port,
+              host: member.config.host,
+              type: member.config.type,
+              instance: member.instance
+            }
+          }
+        }
+
+        members.push(entry)
+      })
+
+      this.prior( msg, function( err, list ) {
+        list = list || []
+        done( null, list.concat(members) )
+      })
+    })
+
+
     sneeze.join( meta )
 
-    function add_client( meta ) {
-      var config = meta.config
-      //console.log('add_client',seneca.id,config)
 
-      var pins = config.pins || config.pin
+    function add_client( meta ) {
+      var config = meta.config || {}
+
+      var pins = config.pins || config.pin || []
       pins = _.isArray(pins) ? pins : [pins]
 
       _.each( pins, function( pin ) {
@@ -139,7 +170,6 @@ module.exports = function mesh (options) {
         }
 
         if( !balance_map[pin_id] ) {
-          //console.log('M AC AB '+pin_id)
           instance.root.client( {type:'balance', pin:pin, model:config.model} )
           balance_map[pin_id] = {}
         }
@@ -156,10 +186,9 @@ module.exports = function mesh (options) {
 
 
     function remove_client( meta ) {
-      var config = meta.config
-      //console.log('REMOVE',seneca.id,config)
+      var config = meta.config || {}
 
-      var pins = config.pins || config.pin
+      var pins = config.pins || config.pin || []
       pins = _.isArray(pins) ? pins : [pins]
 
       _.each( pins, function( pin ) {
@@ -179,7 +208,6 @@ module.exports = function mesh (options) {
           delete target_map[id]
         }
 
-        //console.log( 'TREM', seneca.id,pin_config )
         instance.act( 
           'role:transport,type:balance,remove:client', 
           {config:pin_config} ) 

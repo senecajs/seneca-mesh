@@ -57,28 +57,31 @@ describe('#mesh', function () {
                             //console.log(0,e,o)
                             Assert.equal(0,o.x)
 
-                            s0.close( function() {
-                              
-                              setTimeout( function() {
-                                c0.act('a:1,s:3',function(e,o){
-                                  //console.log(0,e,o)
-                                  Assert.equal(1,o.x)
+                            b0.act('role:mesh,get:members',function(e,o){
+                              Assert.equal(3,o.length)
 
-                                  c0.act('a:1,s:4',function(e,o){
+                              s0.close( function() {
+                              
+                                setTimeout( function() {
+                                  c0.act('a:1,s:3',function(e,o){
                                     //console.log(0,e,o)
                                     Assert.equal(1,o.x)
+
+                                    c0.act('a:1,s:4',function(e,o){
+                                      //console.log(0,e,o)
+                                      Assert.equal(1,o.x)
                               
-                                    c0.close( function(){
-                                      s1.close( function(){
-                                        b0.close( function(){
-                                          done()
+                                      c0.close( function(){
+                                        s1.close( function(){
+                                          b0.close( function(){
+                                            done()
+                                          })
                                         })
                                       })
                                     })
                                   })
-                                })
-                              },555)
-                           
+                                },555)
+                              })
                             })
                           })
                         })

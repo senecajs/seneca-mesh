@@ -1,6 +1,6 @@
 /*
   MIT License,
-  Copyright (c) 2015, Richard Rodger and other contributors.
+  Copyright (c) 2015-2016, Richard Rodger and other contributors.
 */
 
 'use strict'
@@ -16,7 +16,48 @@ var it = lab.it
 
 describe('#mesh', function () {
 
-  it('happy', {timeout:5000}, function (done) {
+  it('base', {timeout:5555, parallel:false}, function (done) {
+    var b0a
+
+    b0a = 
+      Seneca({tag:'b0a', log:'test', debug:{short_logs:true}})
+      .error(done)
+      .use('..',{isbase:true})
+      .ready( function () {
+        this.close(setTimeout.bind(this,done,555))
+      })
+  })
+
+  it('single', {parallel:false}, function (done) {
+    var b0b, s0b
+
+    b0b = 
+      Seneca({tag:'b0b', log:'test', debug:{short_logs:true}})
+      .error(done)
+      .use('..',{isbase:true})
+      .ready( function () {
+
+        s0b = 
+          Seneca({tag:'s0b', log:'test', debug:{short_logs:true}})
+          .error(done)
+          .use('..',{pin:'a:1'})
+          .add('a:1',function(msg){this.good({x:msg.i})})
+          .ready( function () {
+
+            b0b.act('a:1,i:0',function(err,out){
+              Assert.equal(0,out.x)
+              
+              b0b.act('a:1,i:1',function(err,out){
+                Assert.equal(1,out.x)
+                
+                s0b.close(b0b.close.bind(b0b,setTimeout.bind(this,done,555)))
+              })
+            })
+          })
+      })
+  })
+
+  it('happy', {parallel:false}, function (done) {
     var b0, s0, s1, c0
 
     b0 = 

@@ -7,7 +7,6 @@
 
 var _ = require('lodash')
 var Jsonic = require('jsonic')
-var Swim = require('swim')
 var Sneeze = require('sneeze')
 var Nid = require('nid')
 
@@ -104,10 +103,11 @@ module.exports = function mesh (options) {
     sneeze.on('remove', remove_client)
     sneeze.on('ready', done)
 
-    seneca.sub('role:seneca,cmd:close', function(){
+    seneca.add('role:seneca,cmd:close', function(msg, done) {
       if( sneeze ) {
         sneeze.leave()
       }
+      this.prior(msg, done)
     })
 
 

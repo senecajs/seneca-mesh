@@ -28,8 +28,7 @@
     "jsonic": "^0.2.2",
     "lodash": "^3.10.1",
     "nid": "^0.3.2",
-    "sneeze": "^0.3.2",
-    "swim": "https://github.com/rjrodger/swim-js"
+    "sneeze": "^0.3.3"
   },
   "devDependencies": {
     "docco": "0.7.0",

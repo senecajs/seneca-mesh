@@ -19,7 +19,7 @@ module.exports = function mesh (options) {
   
   options = seneca.util.deepextend({
     auto: true,
-    make_entry: _.noop
+    make_entry: default_make_entry
   }, options)
 
   // options.base is to deprecated
@@ -49,7 +49,7 @@ module.exports = function mesh (options) {
          (null === tag ? null : 'seneca~'+tag) 
          : 'seneca~mesh' )
 
-  var listen = options.listen || [{pin:pin}]
+  var listen = options.listen || [{pin:pin, model:options.model||'actor'}]
 
   seneca.use( 'balance-client$mesh~'+mid )
 
@@ -112,26 +112,9 @@ module.exports = function mesh (options) {
 
 
     seneca.add( 'role:mesh,get:members', function get_members (msg, done) {
-      var members = []
 
-      _.each( sneeze.members(), function(member) {
-        var entry = options.make_entry(member)
-
-        if( null == entry ) {
-          entry = member
-
-          if( member.tag$.match(/^seneca~/) ) {
-            entry = {
-              pin: member.config.pin,
-              port: member.config.port,
-              host: member.config.host,
-              type: member.config.type,
-              instance: member.instance
-            }
-          }
-        }
-
-        members.push(entry)
+      var members = _.map( sneeze.members(), function(member) {
+        return options.make_entry(member)
       })
 
       this.prior( msg, function( err, list ) {
@@ -214,5 +197,23 @@ module.exports = function mesh (options) {
       })
     }
   }
+
+
+  function default_make_entry (member) {
+    var entry = member
+
+    if( member.tag$.match(/^seneca~/) ) {
+      entry = {
+        pin: member.config.pin,
+        port: member.config.port,
+        host: member.config.host,
+        type: member.config.type,
+        instance: member.instance
+      }
+    }
+
+    return entry
+  }
+
 }
 

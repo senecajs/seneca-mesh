@@ -28,7 +28,7 @@
     "jsonic": "^0.2.2",
     "lodash": "^3.10.1",
     "nid": "^0.3.2",
-    "sneeze": "^0.3.3"
+    "sneeze": "^0.3.4"
   },
   "devDependencies": {
     "docco": "0.7.0",

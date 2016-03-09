@@ -1,13 +1,11 @@
 {
-  "extends": "standard",
-  "extends": "seneca",
+  "extends": ["seneca"],
   "rules": {
     "no-labels": 0,
     "no-multiple-empty-lines": 0,
     "space-in-parens": 0,
-    no-return-assign: 0,
-    yoda: 0,
-    padded-blocks: 0
-  },
-
+    "no-return-assign": 0,
+    "yoda": 0,
+    "padded-blocks": 0
+  }
 }

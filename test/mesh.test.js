@@ -6,6 +6,8 @@
 'use strict'
 
 var Assert = require('assert')
+var Util = require('util')
+
 var Lab = require('lab')
 var Seneca = require('seneca')
 
@@ -28,29 +30,33 @@ describe('#mesh', function () {
       })
   })
 
-  it('single', {parallel:false}, function (done) {
+  it('single', {parallel:false, timeout:5555}, function (done) {
     var b0b, s0b
 
     b0b = 
-      Seneca({tag:'b0b', log:'test', debug:{short_logs:true}})
+      Seneca({tag:'b0b', log:'silent', debug:{short_logs:true}})
       .error(done)
       .use('..',{isbase:true})
 
     s0b = 
-      Seneca({tag:'s0b', log:'test', debug:{short_logs:true}})
+      Seneca({tag:'s0b', log:'silent', debug:{short_logs:true}})
       .error(done)
       .add('a:1',function(msg){this.good({x:msg.i})})
 
     b0b.ready( function() {
       s0b.use('..',{pin:'a:1'}).ready( function() {
 
-        b0b.act('a:1,i:0',function(err,out){
-          Assert.equal(0,out.x)
+        s0b.act('role:mesh,get:members',function (err, list) {
+          Assert.equal(1,list.length)
+
+          b0b.act('a:1,i:0',function(err,out){
+            Assert.equal(0,out.x)
           
-          b0b.act('a:1,i:1',function(err,out){
-            Assert.equal(1,out.x)
+            b0b.act('a:1,i:1',function(err,out){
+              Assert.equal(1,out.x)
           
-            s0b.close(b0b.close.bind(b0b,setTimeout.bind(this,done,555)))
+              s0b.close(b0b.close.bind(b0b,setTimeout.bind(this,done,555)))
+            })
           })
         })
       })
@@ -137,25 +143,25 @@ describe('#mesh', function () {
   it('many-actors', {parallel:false, timeout:9999}, function (done) {
     var b0, s0, s1, s2, c0, c1
 
-    b0 = Seneca({tag:'b0', log:'test'})
+    b0 = Seneca({tag:'b0', log:'test', debug: {short_logs: true}})
       .error(done)
 
-    s0 = Seneca({tag:'s0', log:'test'})
+    s0 = Seneca({tag:'s0', log:'test', debug: {short_logs: true}})
       .error(done)
       .add('a:1',function(m){this.good({x:m.x+1})})
 
-    s1 = Seneca({tag:'s1', log:'test'})
+    s1 = Seneca({tag:'s1', log:'test', debug: {short_logs: true}})
       .error(done)
       .add('a:1',function(m){this.good({x:m.x+2})})
 
-    s2 = Seneca({tag:'s2', log:'test'})
+    s2 = Seneca({tag:'s2', log:'test', debug: {short_logs: true}})
       .error(done)
       .add('a:1',function(m){this.good({x:m.x+3})})
 
-    c0 = Seneca({tag:'c0', log:'test'})
+    c0 = Seneca({tag:'c0', log:'test', debug: {short_logs: true}})
       .error(done)
 
-    c1 = Seneca({tag:'c1', log:'test'})
+    c1 = Seneca({tag:'c1', log:'test', debug: {short_logs: true}})
       .error(done)
 
     
@@ -164,13 +170,38 @@ describe('#mesh', function () {
         s1.use('..',{pin:'a:1',model:'actor'}).ready( function() {
           s2.use('..',{pin:'a:1',model:'actor'}).ready( function() {
             c0.use('..').ready( function() {
-              c1.use('..').ready( do_actors ) })})})})})
+              c1.use('..').ready( setTimeout.bind(null,do_topology,222) ) })})})})})
 
-    function do_actors() {
+    function do_topology() {
+      c0.act('role:mesh,get:members', function (err,list) {
+        Assert.equal(5, list.length)
+
+        c1.act('role:mesh,get:members', function (err,list) {
+          Assert.equal(5, list.length)
+
+          c0.act('role:transport,type:balance,get:target-map,pg:"a:1"', function (err,c0map) {
+            Assert.equal(3, c0map['a:1'].targets.length)
+
+            c1.act('role:transport,type:balance,get:target-map,pg:"a:1"', function (err,c1map) {
+              Assert.equal(3, c1map['a:1'].targets.length)
+            
+              do_actors(c0map, c1map)
+            })
+          })
+        })
+      })
+    }
+
+    function do_actors(c0map, c1map) {
+      var i = 0
+      //console.log(i++,'c0',c0map['a:1'].index,c0map.x,'c1',c1map['a:1'].index,c1map.x)
+
       c0.act('a:1,x:0', function(e,o){
+        //console.log(i++,'c0',c0map['a:1'].index,'c1',c1map['a:1'].index)
         Assert.equal(1,o.x)
 
         c1.act('a:1,x:0', function(e,o){
+          //console.log(i++,'c0',c0map['a:1'].index,'c1',c1map['a:1'].index)
           Assert.equal(1,o.x)
 
           c0.act('a:1,x:0', function(e,o){

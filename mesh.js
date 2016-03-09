@@ -89,11 +89,16 @@ module.exports = function mesh (options) {
       config.pin = 'null:true'
     }
 
-    var sneeze = Sneeze( sneeze_opts )
+    var instance_sneeze_opts = _.clone( sneeze_opts )
+    instance_sneeze_opts.identifier = 
+      sneeze_opts.identifier + '~' +
+      seneca.util.pincanon(config.pin||config.pins) + '~' + Date.now()
+
+    var sneeze = Sneeze( instance_sneeze_opts )
     
     var meta = {
       config: config,
-      instance: instance.id
+      instance: instance.id,
     }
 
     sneeze.on('error', function(err) {
@@ -112,20 +117,23 @@ module.exports = function mesh (options) {
 
 
     seneca.add( 'role:mesh,get:members', function get_members (msg, done) {
+      var members = []
 
-      var members = _.map( sneeze.members(), function(member) {
-        return options.make_entry(member)
+      _.each( sneeze.members(), function(member) {
+        var m = options.make_entry(member)
+        members.push( void 0 === m ? default_make_entry(member) : m )
       })
 
       this.prior( msg, function( err, list ) {
         list = list || []
-        done( null, list.concat(members) )
+        var outlist = list.concat(members)
+
+        done( null, outlist )
       })
     })
 
 
     sneeze.join( meta )
-
 
     function add_client( meta ) {
       var config = meta.config || {}
@@ -135,7 +143,6 @@ module.exports = function mesh (options) {
 
       _.each( pins, function( pin ) {
         var pin_id = instance.util.pattern(pin)
-
         var pin_config = _.clone( config )
         delete pin_config.pins
         delete pin_config.pin
@@ -208,6 +215,7 @@ module.exports = function mesh (options) {
         port: member.config.port,
         host: member.config.host,
         type: member.config.type,
+        model: member.config.model,
         instance: member.instance
       }
     }

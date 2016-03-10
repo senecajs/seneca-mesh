@@ -325,14 +325,14 @@ describe('#mesh', function () {
       s0.use('..',{
         listen:[
           {pin:'a:1'},
-          {pin:'b:1',model:'publish'},
+          {pin:'b:1',model:'observe'},
         ]
       }).ready( function() {
 
           s1.use('..',{
             listen:[
               {pin:'c:1'},
-              {pin:'b:1',model:'publish'},
+              {pin:'b:1',model:'observe'},
             ]
           }).ready( function() {
 

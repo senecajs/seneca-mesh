@@ -13,17 +13,6 @@ workshop](https://github.com/rjrodger/nodezoo).
 
 This module is a plugin for the Seneca framework.
 
-- __Tested on:__ Seneca 0.9
-- __Node:__ 0.10, 0.12, 4, 5
-- __License:__ [MIT][]
-
-seneca-mesh's source can be read in an annotated fashion by,
-
-- running `npm run annotate`
-- viewing [online](http://senecajs.org/annotations/mesh.html).
-
-The annotated source can be found locally at [./doc/seneca-mesh.html]().
-
 If you're using this module, and need help, you can:
 
 - Post a [github issue][],
@@ -125,6 +114,13 @@ require('seneca')()
 
 The _foo_ and _bar_ services call each other, but neither requires
 configuration information!
+
+# Examples
+
+You can review the source code of these example projects to see seneca-mesh in action:
+
+* [NodeZoo Workshop, iteration 5](https://github.com/nodezoo/nodezoo-workshop#iteration-05-mesh-networking)
+* [ramanajun.io twitter clone](https://github.com/senecajs/ramanujan)
 
 
 <!--

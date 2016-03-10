@@ -28,6 +28,7 @@
     "jsonic": "0.2.2",
     "lodash": "4.5.0",
     "nid": "0.3.2",
+    "seneca-transport": "github:feugy/seneca-transport",
     "sneeze": "0.3.4"
   },
   "devDependencies": {

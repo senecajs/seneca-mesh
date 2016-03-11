@@ -63,80 +63,90 @@ describe('#mesh', function () {
     })
   })
 
-  it('happy', {parallel:false}, function (done) {
+  it('happy', {parallel:false, timeout:5555}, function (done) {
     var b0, s0, s1, c0
 
     b0 = 
       Seneca({tag:'b0', log:'test'})
       .error(done)
       .use('..',{isbase:true})
-      .ready( function () {
 
-        s0 = 
-          Seneca({tag:'s0', log:'test'})
-          .error(done)
-          .use('..',{pin:'a:1'})
-          .add('a:1',function(){this.good({x:0})})
-          .ready( function () {
+    s0 = 
+      Seneca({tag:'s0', log:'test'})
+      .error(done)
+      .use('..',{pin:'a:1'})
+      .add('a:1',function(){this.good({x:0})})
 
-            s1 = 
-              Seneca({tag:'s1', log:'test'})
-              .error(done)
-              .use('..',{pins:'a:1'})
-              .add('a:1',function(){this.good({x:1})})
-              .ready( function () {
+    s1 = 
+      Seneca({tag:'s1', log:'test'})
+      .error(done)
+      .use('..',{pins:'a:1'})
+      .add('a:1',function(){this.good({x:1})})
+    
+    c0 = 
+      Seneca({tag:'c0', log:'test'})
+      .error(done)
+      .use('..',{})
 
-                c0 = 
-                  Seneca({tag:'c0', log:'test'})
-                  .error(done)
-                  .use('..',{})
-                  .ready( function () {
+    b0.ready( function () {
+      // console.log('b0')
 
-                      c0.act('a:1,s:0',function(e,o){
-                        //console.log(0,e,o)
+        s0.ready( function () {
+          // console.log('s0')
+
+            s1.ready( function () {
+              // console.log('s1')
+
+                c0.ready( function () {
+                  // console.log('c0')
+
+                  c0.act('a:1,s:0',function(e,o){
+
+                    // console.log(0,e,o)
+                    Assert.equal(0,o.x)
+
+                    c0.act('a:1,s:1',function(e,o){
+                      // console.log(1,e,o)
+                      Assert.equal(1,o.x)
+                      
+                      c0.act('a:1,s:2',function(e,o){
+                        // console.log(2,e,o)
                         Assert.equal(0,o.x)
+                        
+                        b0.act('role:mesh,get:members',function(e,o){
+                          Assert.equal(3,o.length)
 
-                        c0.act('a:1,s:1',function(e,o){
-                          //console.log(0,e,o)
-                          Assert.equal(1,o.x)
-
-                          c0.act('a:1,s:2',function(e,o){
-                            //console.log(0,e,o)
-                            Assert.equal(0,o.x)
-
-                            b0.act('role:mesh,get:members',function(e,o){
-                              Assert.equal(3,o.length)
-
-                              s0.close( function() {
+                          s0.close( function() {
                               
-                                setTimeout( function() {
-                                  c0.act('a:1,s:3',function(e,o){
-                                    //console.log(0,e,o)
-                                    Assert.equal(1,o.x)
-
-                                    c0.act('a:1,s:4',function(e,o){
-                                      //console.log(0,e,o)
-                                      Assert.equal(1,o.x)
-                              
-                                      c0.close( function(){
-                                        s1.close( function(){
-                                          b0.close( function(){
-                                            done()
-                                          })
-                                        })
+                            setTimeout( function() {
+                              c0.act('a:1,s:3',function(e,o){
+                                // console.log(3,e,o)
+                                Assert.equal(1,o.x)
+                                
+                                c0.act('a:1,s:4',function(e,o){
+                                  // console.log(4,e,o)
+                                  Assert.equal(1,o.x)
+                                  
+                                  c0.close( function(){
+                                    s1.close( function(){
+                                      b0.close( function(){
+                                        // console.log('done')
+                                        done()
                                       })
                                     })
                                   })
-                                },555)
+                                })
                               })
-                            })
+                            },1555)
                           })
                         })
                       })
+                    })
                   })
-              })
-          })
-      })
+                })
+            })
+        })
+    })
   })
 
 
@@ -234,7 +244,7 @@ describe('#mesh', function () {
                             c1.act('a:1,x:0', function(e,o){
                               Assert.equal(3,o.x)
 
-                              s1.close( setTimeout.bind(this,do_s1_down,555) )
+                              s1.close( setTimeout.bind(this,do_s1_down,1555) )
                             })})})
                       })})})
                 })})})

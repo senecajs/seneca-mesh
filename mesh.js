@@ -51,7 +51,8 @@ module.exports = function mesh (options) {
 
   var listen = options.listen || [{pin:pin, model:options.model||'actor'}]
 
-  seneca.use( 'balance-client$mesh~'+mid )
+  var balance_client_opts = options.balance_client || {}
+  seneca.use( 'balance-client$mesh~'+mid, balance_client_opts )
 
   seneca.add( 'role:transport,cmd:listen', transport_listen )
 
@@ -143,13 +144,23 @@ module.exports = function mesh (options) {
 
       _.each( pins, function( pin ) {
         var pin_id = instance.util.pattern(pin)
+        var has_balance_client = !!balance_map[pin_id]
+        var target_map = (balance_map[pin_id] = balance_map[pin_id] || {})
+
         var pin_config = _.clone( config )
         delete pin_config.pins
         delete pin_config.pin
 
         pin_config.pin = pin_id
 
-        var id = instance.util.pattern( pin_config )
+        var id = instance.util.pattern( pin_config )+'~'+meta.identifier$
+        
+        // this is a duplicate, so ignore
+        if( target_map[id] ) {
+          return
+        }
+
+        pin_config.id = id
 
         // TODO: how to handle local override?
         var actmeta = instance.find( pin )
@@ -159,12 +170,11 @@ module.exports = function mesh (options) {
           return
         }
 
-        if( !balance_map[pin_id] ) {
-          instance.root.client( {type:'balance', pin:pin, model:config.model} )
-          balance_map[pin_id] = {}
-        }
 
-        var target_map = (balance_map[pin_id] = balance_map[pin_id] || {})
+        if( !has_balance_client ) {
+          // no balancer for this pin, so add one
+          instance.root.client( {type:'balance', pin:pin, model:config.model} )
+        }
 
         target_map[id] = true
 
@@ -190,7 +200,8 @@ module.exports = function mesh (options) {
 
         pin_config.pin = pin_id
 
-        var id = instance.util.pattern( pin_config )
+        var id = instance.util.pattern( pin_config )+'~'+meta.identifier$
+        pin_config.id = id
 
         var target_map = balance_map[pin_id]
 

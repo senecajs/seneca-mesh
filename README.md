@@ -4,13 +4,15 @@
 # seneca-mesh
 [![npm version][npm-badge]][npm-url]
 [![Build Status][travis-badge]][travis-url]
+[![Dependency Status][david-badge]][david-url]
 [![Gitter][gitter-badge]][gitter-url]
 
 - __Lead Maintainer:__ [Richard Rodger][Lead]
 - __Sponsor:__ [nearForm][Sponsor]
 
+## Description
 This plugin allows you to wire up seneca services using automatic
-meshing. Uses the SWIM gossip algorithm for automatic configuration 
+meshing. Uses the SWIM gossip algorithm for automatic configuration
 of the microservice network.
 
 If you're using this module, and need help, you can:
@@ -23,6 +25,8 @@ If you are new to Seneca in general, please take a look at
 [senecajs.org][]. We have everything from tutorials to sample apps to
 help get you up and running quickly.
 
+### Seneca compatibility
+Supports Seneca versions **1.x** and **2.x**
 
 ## Install
 To install, simply use npm
@@ -31,7 +35,7 @@ To install, simply use npm
 npm install seneca-balance-client
 npm install seneca-mesh
 ```
-The _seneca-mesh_ plugin depends on the [seneca-balance-client](Balance) plugin.
+The _seneca-mesh_ plugin depends on the [seneca-balance-client][balance] plugin.
 
 And in your code:
 
@@ -40,15 +44,8 @@ require('seneca')()
   .use('mesh', { ... options ... })
 ```
 
-## Test
-To run tests, simply use npm:
-
-```sh
-npm run test
-```
-
 ## Example One
-Demonstrates connecting two services together using a base node. Base nodes 
+Demonstrates connecting two services together using a base node. Base nodes
 are used so that other nodes have a known reference point to join the network.
 They are only required for the inital mesh, once the mesh is live, it becomes
 redundant.
@@ -117,9 +114,9 @@ The _foo_ and _bar_ services call each other, but neither requires
 configuration information!
 
 ## Example Two
-The example below shows you how to use consume and observe models on 
+The example below shows you how to use consume and observe models on
 individual pins. By default patterns are created in consume mode. If
-observe mode is used __all__ action handlers are called for that 
+observe mode is used __all__ action handlers are called for that
 pattern.
 
 ```js
@@ -158,16 +155,19 @@ TODO
 
 
 ## Contributing
-The [Seneca.js org][] encourages __open__ and __safe__ participation.
+The [Senecajs org][] encourages open participation. If you feel you
+can help in any way, be it with documentation, examples, extra
+testing, or new features please get in touch.
 
-- __[Code of Conduct][]__
+## Test
+To run tests, simply use npm:
 
-If you feel you can help in any way, be it with documentation, examples, 
-extra testing, or new features please get in touch.
-
+```sh
+npm run test
+```
 
 ## License
-Copyright (c) 2015, Richard Rodger and other contributors.
+Copyright (c) 2010-2016, Richard Rodger and other contributors.
 Licensed under [MIT][].
 
 [MIT]: ./LICENSE
@@ -180,9 +180,11 @@ Licensed under [MIT][].
 [travis-badge]: https://travis-ci.org/rjrodger/seneca-mesh.svg
 [travis-url]: https://travis-ci.org/rjrodger/seneca-mesh
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
-[gitter-url]: https://gitter.im/rjrodger/seneca
+[gitter-url]: https://gitter.im/senecajs/seneca
 [github issue]: https://github.com/rjrodger/seneca-mesh/issues
-[Balance]: https://github.com/rjrodger/seneca-balance-client
-[Lead]: https://github.com/rjrodger/seneca-balance-client
+[balance]: https://github.com/rjrodger/seneca-balance-client
+[Lead]: https://github.com/rjrodger
 [Sponsor]: http://nearform.com
 [CoC]: http://senecajs.org/contribute/details/code-of-conduct.html
+[david-badge]: https://david-dm.org/rjrodger/seneca-mesh.svg
+[david-url]: https://david-dm.org/rjrodger/seneca-mesh

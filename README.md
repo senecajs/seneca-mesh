@@ -166,8 +166,10 @@ require('seneca')()
   .use('mesh', { 
     auto:true, 
     host: 'ip2',
-    bases: ['ip1:3999']
-    pin:'foo:1' 
+    bases: ['ip1:3999'],
+    listen:[
+      {pin:'foo:1', host: 'ip2'} 
+    ]
   })
 
 ..................

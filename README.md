@@ -135,6 +135,49 @@ require('seneca')
   })
 ```
 
+## Example Three
+The example below shows you how to use mesh that is deployed on separate hosts. 
+
+Our example assume that we have a base and a service.
+ * base is deployed on host with ip1
+ * service is deployed on host with ip2
+
+In this case the base should specify host parameter with its own ip:
+
+```
+var mesh_opts = {
+  base:true,
+  host: 'ip1'
+}
+
+require('seneca')()
+  .use('mesh',mesh_opts)
+```
+
+and service should be like this:
+
+```
+require('seneca')()
+  .add( 'foo:1', function (msg, done) {
+    done( null, {x:1,v:100+msg.v} )
+  })
+
+  // this service handles foo:1 messages
+  .use('mesh', { 
+    auto:true, 
+    host: 'ip2',
+    bases: ['ip1:3999']
+    pin:'foo:1' 
+  })
+
+..................
+
+```
+
+## Deploying using Docker
+
+If Docker is used for deploying mesh base or service then it should be started using the ```--net=host``` parameter.
+
 ## Further examples
 
 You can review the source code of these example projects to see seneca-mesh in action:

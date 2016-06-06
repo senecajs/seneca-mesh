@@ -144,7 +144,7 @@ Our example assume that we have a base and a service.
 
 In this case the base should specify host parameter with its own ip:
 
-```
+```js
 var mesh_opts = {
   base:true,
   host: 'ip1'
@@ -156,7 +156,7 @@ require('seneca')()
 
 and service should be like this:
 
-```
+```js
 require('seneca')()
   .add( 'foo:1', function (msg, done) {
     done( null, {x:1,v:100+msg.v} )

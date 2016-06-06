@@ -16,7 +16,7 @@ module.exports = function mesh (options) {
 
   var balance_map = {}
   var mid = Nid()
-  
+
   options = seneca.util.deepextend({
     auto: true,
     make_entry: default_make_entry
@@ -43,10 +43,10 @@ module.exports = function mesh (options) {
   sneeze_opts.host = sneeze_opts.host || options.host || void 0
   sneeze_opts.identifier = sneeze_opts.identifier || seneca.id
 
-  sneeze_opts.tag 
-    =  ( void 0 !== sneeze_opts.tag ? sneeze_opts.tag : 
-         void 0 !== tag ? 
-         (null === tag ? null : 'seneca~'+tag) 
+  sneeze_opts.tag
+    =  ( void 0 !== sneeze_opts.tag ? sneeze_opts.tag :
+         void 0 !== tag ?
+         (null === tag ? null : 'seneca~'+tag)
          : 'seneca~mesh' )
 
   var listen = options.listen || [{pin:pin, model:options.model||'actor'}]
@@ -82,7 +82,7 @@ module.exports = function mesh (options) {
     })
   }
 
-  
+
   function join( instance, config, done ) {
     config = config || {}
 
@@ -91,12 +91,12 @@ module.exports = function mesh (options) {
     }
 
     var instance_sneeze_opts = _.clone( sneeze_opts )
-    instance_sneeze_opts.identifier = 
+    instance_sneeze_opts.identifier =
       sneeze_opts.identifier + '~' +
       seneca.util.pincanon(config.pin||config.pins) + '~' + Date.now()
 
     var sneeze = Sneeze( instance_sneeze_opts )
-    
+
     var meta = {
       config: config,
       instance: instance.id,
@@ -141,20 +141,20 @@ module.exports = function mesh (options) {
 
       var pins = config.pins || config.pin || []
       pins = _.isArray(pins) ? pins : [pins]
+      var client_config = _.omit( config, ['pins', 'pin'] )
 
       _.each( pins, function( pin ) {
-        var pin_id = instance.util.pattern(pin)
+        var pin_id = instance.util.pattern(pin.pin || pin)
         var has_balance_client = !!balance_map[pin_id]
         var target_map = (balance_map[pin_id] = balance_map[pin_id] || {})
 
-        var pin_config = _.clone( config )
-        delete pin_config.pins
-        delete pin_config.pin
-
-        pin_config.pin = pin_id
+        var pin_config = _.extend( {}, client_config, {
+          pin: pin_id,
+          model: pin.model || client_config.model
+        } )
 
         var id = instance.util.pattern( pin_config )+'~'+meta.identifier$
-        
+
         // this is a duplicate, so ignore
         if( target_map[id] ) {
           return
@@ -163,7 +163,7 @@ module.exports = function mesh (options) {
         pin_config.id = id
 
         // TODO: how to handle local override?
-        var actmeta = instance.find( pin )
+        var actmeta = instance.find( pin_id )
         var ignore_client = !!(actmeta && !actmeta.client)
 
         if( ignore_client ) {
@@ -173,14 +173,14 @@ module.exports = function mesh (options) {
 
         if( !has_balance_client ) {
           // no balancer for this pin, so add one
-          instance.root.client( {type:'balance', pin:pin, model:config.model} )
+          instance.root.client( {type:'balance', pin:pin_id, model: pin_config.model} )
         }
 
         target_map[id] = true
 
-        instance.act( 
-          'role:transport,type:balance,add:client', 
-          {config:pin_config} ) 
+        instance.act(
+          'role:transport,type:balance,add:client',
+          {config:pin_config} )
       })
     }
 
@@ -209,9 +209,9 @@ module.exports = function mesh (options) {
           delete target_map[id]
         }
 
-        instance.act( 
-          'role:transport,type:balance,remove:client', 
-          {config:pin_config} ) 
+        instance.act(
+          'role:transport,type:balance,remove:client',
+          {config:pin_config} )
       })
     }
   }
@@ -235,4 +235,3 @@ module.exports = function mesh (options) {
   }
 
 }
-

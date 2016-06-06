@@ -123,7 +123,7 @@ observe mode is used __all__ action handlers are called for that
 pattern.
 
 ```js
-require('seneca')
+require('seneca')()
   .use('my-plugin')
   .use('mesh', {
     auto: true,
@@ -135,6 +135,29 @@ require('seneca')
   })
 ```
 
+## Example Three
+This example demonstrates the operation of seneca-mesh when not using
+auto:true. Of particular importance in this case is the definition of a
+static port, and the call location for seneca.listen(), which must be
+located inside a ready() callback in order to allow the mesh plugin to 
+fully load.
+
+```js
+require('seneca')()
+  .use('my-plugin')
+  .use('mesh', {auto: false})
+  .ready(function() {
+    this.listen({
+      port: 12345, 
+      pins: [
+        'role:search,cmd:upsert', // can simply specify pin string, model will default to consume
+        {pin: 'role:search,cmd:search', model: 'consume'},
+        {pin: 'role:info,info:updated', model: 'observe'}
+      ],
+      model: 'consume' // optional, override default model for pins
+    })
+  })
+```
 ## Further examples
 
 You can review the source code of these example projects to see seneca-mesh in action:

@@ -1,5 +1,4 @@
 {
-  "extends": "standard",
   "extends": "seneca",
   "rules": {
     "no-labels": 0,

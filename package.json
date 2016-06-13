@@ -9,7 +9,8 @@
     "Richard Rodger (http://richardrodger.com)"
   ],
   "scripts": {
-    "test": "lab test/*.test.js -r console -t 80 -v",
+    "test": "lab test/*.test.js -r console -t 80 -v $LAB_FLAGS",
+    "test:node6": "LAB_FLAGS='--leaks' && npm test",
     "annotate": "docco mesh.js -o doc"
   },
   "repository": {

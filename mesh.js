@@ -49,7 +49,7 @@ module.exports = function mesh (options) {
          (null === tag ? null : 'seneca~'+tag) 
          : 'seneca~mesh' )
 
-  var listen = options.listen || [{pin:pin, model:options.model||'actor'}]
+  var listen = options.listen || [{pin:pin, model:options.model||'consume'}]
 
   var balance_client_opts = options.balance_client || {}
   seneca.use( 'balance-client$mesh~'+mid, balance_client_opts )
@@ -65,7 +65,7 @@ module.exports = function mesh (options) {
         return 50000 + Math.floor((10000*Math.random()))
       }
 
-      listen_opts.model = listen_opts.model || 'actor'
+      listen_opts.model = listen_opts.model || 'consume'
 
       seneca.root.listen( listen_opts )
     })

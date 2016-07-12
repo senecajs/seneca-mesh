@@ -9,6 +9,7 @@ var _ = require('lodash')
 var Jsonic = require('jsonic')
 var Sneeze = require('sneeze')
 var Nid = require('nid')
+var Rif = require('rif')
 
 
 module.exports = function mesh (options) {
@@ -36,6 +37,10 @@ module.exports = function mesh (options) {
 
   var tag = options.tag
 
+  if( '@' === (options.host && options.host[0]) ) {
+    options.host = Rif(options.host.substring(1))
+  }
+
   var sneeze_opts = options.sneeze || {}
   sneeze_opts.isbase = sneeze_opts.isbase || isbase
   sneeze_opts.bases = sneeze_opts.bases || bases || void 0
@@ -49,6 +54,18 @@ module.exports = function mesh (options) {
          (null === tag ? null : 'seneca~'+tag) 
          : 'seneca~mesh' )
 
+  if( sneeze_opts.bases ) {
+    sneeze_opts.bases = sneeze_opts.bases.map(function (base) {
+      var parts = (base.match(/^(.*)(:\d+)$/)||[base]).slice(1,3)
+      parts = 0 < parts.length ? parts : [base]
+      
+      if( '@' === (parts[0] && parts[0][0]) ) {
+        parts[0] = Rif(parts[0].substring(1))
+      }
+      return parts[0] + (null == parts[1] ? ':39999' : parts[1])
+    })
+  }
+  
   var listen = options.listen || [{pin:pin, model:options.model||'consume'}]
 
   var balance_client_opts = options.balance_client || {}
@@ -63,6 +80,10 @@ module.exports = function mesh (options) {
 
       if( options.host && null == listen_opts.host ) {
         listen_opts.host = options.host
+      }
+
+      if( '@' === (listen_opts.host && listen_opts.host[0]) ) {
+        listen_opts.host = Rif(listen_opts.host.substring(1))
       }
 
       listen_opts.port = null != listen_opts.port ? listen_opts.port : function() {

@@ -9,7 +9,7 @@
     "Richard Rodger (http://richardrodger.com)"
   ],
   "scripts": {
-    "test": "lab test/*.test.js -r console -t 80 -v",
+    "test": "lab test/*.test.js -r console -t 70 -v",
     "annotate": "docco mesh.js -o doc"
   },
   "repository": {
@@ -28,6 +28,7 @@
     "jsonic": "0.2.2",
     "lodash": "4.5.0",
     "nid": "0.3.2",
+    "rif": "0.1.1",
     "sneeze": "0.5.0"
   },
   "devDependencies": {

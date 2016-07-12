@@ -61,6 +61,10 @@ module.exports = function mesh (options) {
   if( options.auto ) {
     _.each( listen, function( listen_opts ) {
 
+      if( options.host && null == listen_opts.host ) {
+        listen_opts.host = options.host
+      }
+
       listen_opts.port = null != listen_opts.port ? listen_opts.port : function() {
         return 50000 + Math.floor((10000*Math.random()))
       }

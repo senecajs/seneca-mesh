@@ -5,7 +5,7 @@ container :
 	docker images | grep mesh-base
 
 run :
-	docker run -d --net=host mesh-base
+	docker run -d --net=host -e HOST=@$(NETIF) mesh-base
 	docker ps
 
 stop :

@@ -1,7 +1,7 @@
 // To run:
 // $ node base.js
 
-var HOST = process.env.HOST || process.argv[2] || '127.0.0.1'
+var HOST = process.env.HOST || process.argv[2]
 
 require('seneca')({tag:'b0'})
   .use('..',{

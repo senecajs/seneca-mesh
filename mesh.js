@@ -32,14 +32,12 @@ module.exports = function mesh (options) {
     pin = pin || 'role:mesh,base:true'
   }
 
-  // options.remotes is to deprecated
+  // options.remotes is deprecated
   var bases = options.bases || options.remotes
 
   var tag = options.tag
 
-  if( '@' === (options.host && options.host[0]) ) {
-    options.host = Rif(options.host.substring(1))
-  }
+  options.host = resolve_interface(options.host)
 
   var sneeze_opts = options.sneeze || {}
   sneeze_opts.isbase = sneeze_opts.isbase || isbase
@@ -62,10 +60,13 @@ module.exports = function mesh (options) {
       if( '@' === (parts[0] && parts[0][0]) ) {
         parts[0] = Rif(parts[0].substring(1))
       }
+      else if( '' === parts[0] ) {
+        parts[0] = '127.0.0.1'
+      }
       return parts[0] + (null == parts[1] ? ':39999' : parts[1])
     })
   }
-  
+
   var listen = options.listen || [{pin:pin, model:options.model||'consume'}]
 
   var balance_client_opts = options.balance_client || {}
@@ -259,5 +260,22 @@ module.exports = function mesh (options) {
     return entry
   }
 
+
+  function resolve_interface (spec) {
+    var out = spec
+
+    spec = null == spec ? '' : spec
+
+    if( '@' === spec[0] ) {
+      if( 1 === spec.length ) {
+        out = '0.0.0.0'
+      }
+      else {
+        out = Rif(spec.substring(1))
+      }
+    }
+
+    return out
+  }
 }
 

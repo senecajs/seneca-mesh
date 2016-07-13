@@ -1,18 +1,11 @@
 # base
 
-FROM node:4
+FROM mesh-shared
 
-RUN apt-get update
-RUN apt-get install -y net-tools
+ADD mesh.js /
+ADD base.js /srv/
 
-#ADD mesh.js /
-#ADD package.json /
-#ADD base.js /srv/
+CMD ["node", "/srv/base.js"]
 
-#RUN npm install
-
-#CMD ["node", "/srv/base.js"]
-
-CMD ["node", "-e", "require('http').createServer(function(q,r){r.end(''+Date.now())}).listen(8080)"]
 
 

@@ -11,12 +11,74 @@ var Util = require('util')
 var Lab = require('lab')
 var Seneca = require('seneca')
 
+var Rif = require('rif')
+
 var lab = exports.lab = Lab.script()
 var describe = lab.describe
 var it = lab.it
 
+var mesh = require('..')
+
+var netif = { 
+  lo:
+   [ { address: '127.0.0.1',
+       netmask: '255.0.0.0',
+       family: 'IPv4',
+       mac: '00:00:00:00:00:00',
+       internal: true },
+     { address: '::1',
+       netmask: 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff',
+       family: 'IPv6',
+       mac: '00:00:00:00:00:00',
+       scopeid: 0,
+       internal: true } ],
+  eth0:
+   [ { address: '10.0.2.15',
+       netmask: '255.255.255.0',
+       family: 'IPv4',
+       mac: '08:00:27:1b:bc:e9',
+       internal: false },
+     { address: 'fe80::a00:27ff:fe1b:bce9',
+       netmask: 'ffff:ffff:ffff:ffff::',
+       family: 'IPv6',
+       mac: '08:00:27:1b:bc:e9',
+       scopeid: 2,
+       internal: false } ],
+}
+
+var rif = Rif(netif)
 
 describe('#mesh', function () {
+
+  it('util:resolve_bases', function (done) {
+    Assert.equal(
+      mesh.DEFAULT_HOST+':'+mesh.DEFAULT_PORT,
+      ''+mesh.resolve_bases())
+
+    Assert.equal(
+      '192.168.1.2:'+mesh.DEFAULT_PORT+','+
+        mesh.DEFAULT_HOST+':'+mesh.DEFAULT_PORT,
+      ''+mesh.resolve_bases([],'192.168.1.2'))
+
+    Assert.equal(
+      'foo:'+mesh.DEFAULT_PORT+','+
+      'bar:'+mesh.DEFAULT_PORT,
+      ''+mesh.resolve_bases(['foo','bar']))
+
+    Assert.equal(
+      mesh.DEFAULT_HOST+':33333',
+      ''+mesh.resolve_bases([':33333']))
+
+    Assert.equal(
+      mesh.DEFAULT_HOST+':33333,'+'zed:33333',
+      ''+mesh.resolve_bases([':33333'], 'zed'))
+
+    Assert.equal(
+      '127.0.0.1:'+mesh.DEFAULT_PORT,
+      ''+mesh.resolve_bases(['@lo'], null, rif))
+    
+    done()
+  })
 
   it('base', {timeout:5555, parallel:false}, function (done) {
     var b0a

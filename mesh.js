@@ -12,7 +12,13 @@ var Nid = require('nid')
 var Rif = require('rif')
 
 
-module.exports = function mesh (options) {
+module.exports = mesh
+module.exports.resolve_bases = resolve_bases
+
+var DEFAULT_HOST = module.exports.DEFAULT_HOST = '127.0.0.1'
+var DEFAULT_PORT = module.exports.DEFAULT_PORT = 39999
+
+function mesh (options) {
   var seneca = this
 
   var balance_map = {}
@@ -23,6 +29,11 @@ module.exports = function mesh (options) {
     make_entry: default_make_entry
   }, options)
 
+
+  // fixed network interface specification, as per format of
+  // require('os').networkInterfaces. Merged with and overrides same.
+  var rif = Rif(options.netif)
+
   // options.base is to deprecated
   var isbase = !!(options.isbase || options.base)
 
@@ -32,16 +43,21 @@ module.exports = function mesh (options) {
     pin = pin || 'role:mesh,base:true'
   }
 
-  // options.remotes is deprecated
-  var bases = options.bases || options.remotes
-
-  var tag = options.tag
-
   options.host = resolve_interface(options.host)
 
   var sneeze_opts = options.sneeze || {}
+
+  // options.remotes is deprecated
+  var bases = resolve_bases( 
+    sneeze_opts.bases || options.bases || options.remotes || [],
+    options.host,
+    rif
+  )
+
+  var tag = options.tag
+
   sneeze_opts.isbase = sneeze_opts.isbase || isbase
-  sneeze_opts.bases = sneeze_opts.bases || bases || void 0
+  sneeze_opts.bases = bases
   sneeze_opts.port = sneeze_opts.port || options.port || void 0
   sneeze_opts.host = sneeze_opts.host || options.host || void 0
   sneeze_opts.identifier = sneeze_opts.identifier || seneca.id
@@ -51,21 +67,6 @@ module.exports = function mesh (options) {
          void 0 !== tag ? 
          (null === tag ? null : 'seneca~'+tag) 
          : 'seneca~mesh' )
-
-  if( sneeze_opts.bases ) {
-    sneeze_opts.bases = sneeze_opts.bases.map(function (base) {
-      var parts = (base.match(/^(.*)(:\d+)$/)||[base]).slice(1,3)
-      parts = 0 < parts.length ? parts : [base]
-      
-      if( '@' === (parts[0] && parts[0][0]) ) {
-        parts[0] = Rif(parts[0].substring(1))
-      }
-      else if( '' === parts[0] ) {
-        parts[0] = '127.0.0.1'
-      }
-      return parts[0] + (null == parts[1] ? ':39999' : parts[1])
-    })
-  }
 
   var listen = options.listen || [{pin:pin, model:options.model||'consume'}]
 
@@ -84,7 +85,7 @@ module.exports = function mesh (options) {
       }
 
       if( '@' === (listen_opts.host && listen_opts.host[0]) ) {
-        listen_opts.host = Rif(listen_opts.host.substring(1))
+        listen_opts.host = rif(listen_opts.host.substring(1))
       }
 
       listen_opts.port = null != listen_opts.port ? listen_opts.port : function() {
@@ -271,11 +272,58 @@ module.exports = function mesh (options) {
         out = '0.0.0.0'
       }
       else {
-        out = Rif(spec.substring(1))
+        out = rif(spec.substring(1))
       }
     }
 
     return out
   }
+}
+
+
+function resolve_bases (orig_bases, host, rif) {
+  var bases = (orig_bases || []).filter(function (base) {
+    return 0 < base.length
+  })
+
+  if( 0 === bases.length ) {
+    if( null != host && host !== DEFAULT_HOST ) {
+      bases.push(host+':'+DEFAULT_PORT)
+    }
+    bases.push(DEFAULT_HOST+':'+DEFAULT_PORT)
+  }
+
+  var append = []
+
+  bases = bases.map(function (base) {
+    // host:port -> host:port
+    // :port -> DEFAULT_HOST:port
+    // host -> host:DEFAULT_PORT
+    var parts = base.match(/^(.+):(\d+)$/)
+    if( parts ) {
+      parts = parts.slice(1,3)
+    }
+    else {
+      if( ':' === base[0] ) {
+        parts = [DEFAULT_HOST, base.substring(1)]
+        if( host ) {
+          append.push(host+':'+parts[1])
+        }
+      }
+      else {
+        parts = [base, DEFAULT_PORT]
+      }
+    }
+
+    if( '@' === (parts[0] && parts[0][0]) ) {
+      parts[0] = rif(parts[0].substring(1))
+    }    
+
+    return parts.join(':')
+  })
+  
+  bases = bases.concat(append)
+
+  return bases
 }
 

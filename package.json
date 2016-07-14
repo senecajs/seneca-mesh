@@ -28,7 +28,7 @@
     "jsonic": "0.2.2",
     "lodash": "4.5.0",
     "nid": "0.3.2",
-    "rif": "0.1.1",
+    "rif": "0.2.0",
     "sneeze": "0.5.0"
   },
   "devDependencies": {

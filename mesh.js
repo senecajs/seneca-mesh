@@ -293,14 +293,17 @@ function mesh (options) {
 
 
 function find_bases (options, rif, done) {
+  var defined_bases = 
+        (options.sneeze||{}).bases || options.bases || options.remotes || []
+
   // options.remotes is deprecated
   var bases = resolve_bases( 
-    (options.sneeze||{}).bases || options.bases || options.remotes || [],
+    defined_bases,
     options.host,
     rif
   )
 
-  if( options.discover.publish ) {
+  if( 0 === defined_bases.length && options.discover.publish ) {
     var d = Discover({
       broadcast: options.broadcast,
       advertisement: options.isbase ? {

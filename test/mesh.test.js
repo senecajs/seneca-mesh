@@ -86,7 +86,7 @@ describe('#mesh', function () {
     b0a = 
       Seneca({tag:'b0a', log:'test', debug:{short_logs:true}})
       .error(done)
-      .use('..',{isbase:true})
+      .use('..',{isbase:true, discover:{publish:false}})
       .ready( function () {
         this.close(setTimeout.bind(this,done,555))
       })
@@ -98,7 +98,7 @@ describe('#mesh', function () {
     b0b = 
       Seneca({tag:'b0b', log:'silent', debug:{short_logs:true}})
       .error(done)
-      .use('..',{isbase:true})
+      .use('..',{isbase:true, discover:{publish:false}})
 
     s0b = 
       Seneca({tag:'s0b', log:'silent', debug:{short_logs:true}})
@@ -106,7 +106,7 @@ describe('#mesh', function () {
       .add('a:1',function(msg){this.good({x:msg.i})})
 
     b0b.ready( function() {
-      s0b.use('..',{pin:'a:1'}).ready( function() {
+      s0b.use('..',{pin:'a:1', discover:{publish:false}}).ready( function() {
 
         s0b.act('role:mesh,get:members',function (err, list) {
           Assert.equal(1,list.length)
@@ -131,24 +131,24 @@ describe('#mesh', function () {
     b0 = 
       Seneca({tag:'b0', log:'test'})
       .error(done)
-      .use('..',{isbase:true})
+      .use('..',{isbase:true, discover:{publish:false}})
 
     s0 = 
       Seneca({tag:'s0', log:'test'})
       .error(done)
-      .use('..',{pin:'a:1'})
+      .use('..',{pin:'a:1', discover:{publish:false}})
       .add('a:1',function(){this.good({x:0})})
 
     s1 = 
       Seneca({tag:'s1', log:'test'})
       .error(done)
-      .use('..',{pins:'a:1'})
+      .use('..',{pins:'a:1', discover:{publish:false}})
       .add('a:1',function(){this.good({x:1})})
     
     c0 = 
       Seneca({tag:'c0', log:'test'})
       .error(done)
-      .use('..',{})
+      .use('..',{discover:{publish:false}})
 
     b0.ready( function () {
       // console.log('b0')
@@ -237,12 +237,12 @@ describe('#mesh', function () {
       .error(done)
 
     
-    b0.use('..',{isbase:true}).ready( function() {
-      s0.use('..',{pin:'a:1',model:'actor'}).ready( function() {
-        s1.use('..',{pin:'a:1',model:'actor'}).ready( function() {
-          s2.use('..',{pin:'a:1',model:'actor'}).ready( function() {
-            c0.use('..').ready( function() {
-              c1.use('..').ready( setTimeout.bind(null,do_topology,222) ) })})})})})
+    b0.use('..',{isbase:true, discover:{publish:false}}).ready( function() {
+      s0.use('..',{pin:'a:1',model:'actor', discover:{publish:false}}).ready( function() {
+        s1.use('..',{pin:'a:1',model:'actor', discover:{publish:false}}).ready( function() {
+          s2.use('..',{pin:'a:1',model:'actor', discover:{publish:false}}).ready( function() {
+            c0.use('..',{discover:{publish:false}}).ready( function() {
+              c1.use('..',{discover:{publish:false}}).ready( setTimeout.bind(null,do_topology,222) ) })})})})})
 
     function do_topology() {
       c0.act('role:mesh,get:members', function (err,list) {
@@ -393,22 +393,22 @@ describe('#mesh', function () {
 
 
     
-    b0.use('..',{isbase:true}).ready( function() {
+    b0.use('..',{isbase:true, discover:{publish:false}}).ready( function() {
       s0.use('..',{
         listen:[
           {pin:'a:1'},
           {pin:'b:1',model:'observe'},
-        ]
+        ], discover:{publish:false}
       }).ready( function() {
 
           s1.use('..',{
             listen:[
               {pin:'c:1'},
               {pin:'b:1',model:'observe'},
-            ]
+            ], discover:{publish:false}
           }).ready( function() {
 
-              c0.use('..').ready( do_abc )})})})
+              c0.use('..',{discover:{publish:false}}).ready( do_abc )})})})
 
 
     function do_abc() {

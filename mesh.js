@@ -31,8 +31,10 @@ function mesh (options) {
       publish: true,
       search: true,
       max_search: 22,
-      search_interval: 111
-    }
+      search_interval: 111,
+      guess: true
+    },
+    dumpnet: false
   }, options)
 
 
@@ -57,6 +59,8 @@ function mesh (options) {
   options.host = resolve_interface(options.host)
   var tag = options.tag
 
+  // Guess broadcast address
+  // To set explicitly, use value from ifconfig
   if( '/8' === options.broadcast ) {
     var parts = (options.host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/)||[]).slice(1,5)
     if( 4 === parts.length ) {
@@ -70,7 +74,19 @@ function mesh (options) {
   var balance_client_opts = options.balance_client || {}
   seneca.use( 'balance-client$mesh~'+mid, balance_client_opts )
 
+  if( options.dumpnet ) {
+    require('child_process')
+      .exec('ifconfig -a', function (error, stdout, stderr) {
+        if (error) {
+          console.error(error)
+        }
+        console.log(stdout)
+        console.log(stderr)
+      })
+  }
+
   find_bases( options, rif, function (bases) {
+    seneca.log.info({kind:'mesh',bases:bases})
     var sneeze_opts = options.sneeze || {}
 
     sneeze_opts.bases = bases
@@ -313,6 +329,22 @@ function find_bases (options, rif, done) {
           }
 
           clearInterval(fi)
+
+          if( 0 === count && options.discover.guess ) {
+            var parts = (options.host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/)||[]).slice(1,5)
+            if( 4 === parts.length ) {
+              //var lastpart = parseInt(parts[0])
+              //if( lastpart < 253 ) bases.append(parts.slice(1,3).concat( (lastpart+1) ))
+              //if( 2 < lastpart ) bases.append(parts.slice(1,3).concat( (lastpart-1) ))
+              for( var i = 1; i < 255; ++i ) {
+                var gb = parts.slice(0,3).concat(''+i).join('.')
+                if( gb != options.host ) {
+                  bases.push(gb+':'+DEFAULT_PORT)
+                }
+              }
+            }
+          }
+
           done(bases)
         }
 

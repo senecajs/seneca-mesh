@@ -13,6 +13,7 @@ require('seneca')({tag:'b0'})
     port: PORT,
     bases: BASES,
     broadcast: BROADCAST,
+    dumpnet: true,
     sneeze: {
       silent: false
     }

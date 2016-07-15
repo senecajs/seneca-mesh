@@ -57,6 +57,14 @@ function mesh (options) {
   options.host = resolve_interface(options.host)
   var tag = options.tag
 
+  if( '/8' === options.broadcast ) {
+    var parts = (options.host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/)||[]).slice(1,5)
+    if( 4 === parts.length ) {
+      parts[3] = '255'
+      options.broadcast = parts.join('.')
+    }
+  }
+
   var listen = options.listen || [{pin:pin, model:options.model||'consume'}]
 
   var balance_client_opts = options.balance_client || {}
@@ -278,6 +286,7 @@ function find_bases (options, rif, done) {
 
   if( options.discover.publish ) {
     var d = Discover({
+      broadcast: options.broadcast,
       advertisement: options.isbase ? {
         seneca_mesh: true,
         isbase: true,

@@ -3,6 +3,7 @@
 
 var HOST = process.env.HOST || process.argv[2]
 var BASES = (process.env.BASES || process.argv[3] || '').split(',')
+var BROADCAST = process.env.BROADCAST
 
 require('seneca')({tag:'foo'})
   .add( 'foo:1', function (msg, done) {
@@ -11,6 +12,7 @@ require('seneca')({tag:'foo'})
   .use('..', { 
     host: HOST,
     bases: BASES,
+    broadcast: BROADCAST,
     listen: [{
       pin: 'foo:1'
     }],

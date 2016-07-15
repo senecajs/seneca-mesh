@@ -5,7 +5,7 @@ container :
 	docker images | grep mesh-foo
 
 run :
-	docker run -d --net=host -e HOST=@$(NETIF) mesh-foo
+	docker run -d --net=host -e HOST=@$(NETIF) -e BROADCAST=$(BROADCAST) mesh-foo
 	docker ps
 
 stop :

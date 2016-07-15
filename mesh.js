@@ -282,7 +282,7 @@ function find_bases (options, rif, done) {
         seneca_mesh: true,
         isbase: true,
         host: options.host,
-        port: options.port
+        port: options.port || DEFAULT_PORT
       } : {}
     })
     

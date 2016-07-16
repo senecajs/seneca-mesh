@@ -28,12 +28,15 @@ function mesh (options) {
     auto: true,
     make_entry: default_make_entry,
     discover: {
+      defined: true,
+      guess: true,
+
       publish: true,
       search: true,
       max_search: 22,
       search_interval: 111,
-      guess: true
     },
+
     dumpnet: false
   }, options)
 
@@ -86,7 +89,7 @@ function mesh (options) {
   }
 
   find_bases( options, rif, function (bases) {
-    seneca.log.info({kind:'mesh',bases:bases})
+    seneca.log.info({kind:'mesh',host:options.host,port:options.port,bases:bases})
     var sneeze_opts = options.sneeze || {}
 
     sneeze_opts.bases = bases
@@ -291,18 +294,108 @@ function mesh (options) {
 
 }
 
-
+/*
 function find_bases (options, rif, done) {
   var defined_bases = 
         (options.sneeze||{}).bases || options.bases || options.remotes || []
 
-  // options.remotes is deprecated
-  var bases = resolve_bases( 
-    defined_bases,
-    options.host,
-    rif
-  )
+  if( 0 < defined_bases ) {
+    console.log('FB defined',defined_bases)
+    process_bases ([].concat(defined_bases))
+  }
+  else {
+    discover_bases (options, rif, process_bases)
+  }
+  
+  function process_bases( bases ) {
+    // options.remotes is deprecated
+    bases = resolve_bases( 
+      bases,
+      options,
+      rif
+    )
 
+    done(bases)
+  }
+}
+*/
+
+function find_bases (options, rif, done) {
+  var bases = []
+
+  addbase_funcmap.custom = options.discover.custom
+
+  // order is significant
+  var addbases = [
+    'defined',
+    'guess',
+    'multicast',
+    'kvstore',
+    'custom',
+  ]
+
+  var abI = -1
+
+  next()
+
+  function next (add, stop) {
+    bases = bases.concat(add || [])
+    if (stop) abI = addbases.length
+
+    ++abI
+
+    while (!options.discover[addbases[abI]] 
+           && abI < addbases.length) 
+    { ++abI }
+
+    var addbase = addbases[abI]
+    console.log(abI,addbase)
+
+    if( null == addbase ) {
+      bases = resolve_bases( 
+        bases,
+        options,
+        rif
+      )
+
+      return done(bases)
+    }
+
+    addbase_funcmap[addbase](options, bases, next)
+  }
+}
+
+var addbase_funcmap = {
+  defined: function (options, bases, next) {
+    var add = 
+          (options.sneeze||{}).bases || options.bases || options.remotes || []
+
+    add = add.filter(function (base) {
+      return base && 0 < base.length
+    })
+
+    console.log('FB defined',add)    
+    next(add, 0 < add.length)
+  },
+
+  // order significant! depends on defined as uses bases.length
+  guess: function (options, bases, next) {
+    var host = options.host
+    var add = []
+
+    if( 0 === bases.length ) {
+      if( null != host && host !== DEFAULT_HOST ) {
+        add.push(host+':'+DEFAULT_PORT)
+      }
+      add.push(DEFAULT_HOST+':'+DEFAULT_PORT)
+    }
+
+    console.log('FB guess',add)
+    next(add)
+  }
+}
+
+/*
   if( 0 === defined_bases.length && options.discover.publish ) {
     var d = Discover({
       broadcast: options.broadcast,
@@ -362,6 +455,7 @@ function find_bases (options, rif, done) {
     done(bases)
   }
 }
+*/
 
 
 function default_make_entry (member) {
@@ -382,23 +476,21 @@ function default_make_entry (member) {
 }
 
 
-function resolve_bases (orig_bases, host, rif) {
+function resolve_bases (orig_bases, options, rif) {
+  var host = options.host
+  
+  // remove empties
   var bases = (orig_bases || []).filter(function (base) {
-    return 0 < base.length
+    return base && 0 < base.length
   })
-
-  if( 0 === bases.length ) {
-    if( null != host && host !== DEFAULT_HOST ) {
-      bases.push(host+':'+DEFAULT_PORT)
-    }
-    bases.push(DEFAULT_HOST+':'+DEFAULT_PORT)
-  }
 
   var append = []
 
+  // first pass: defaults and interfacesx
   bases = bases.map(function (base) {
+
     // host:port -> host:port
-    // :port -> DEFAULT_HOST:port
+    // :port -> DEFAULT_HOST:port, host:port
     // host -> host:DEFAULT_PORT
     var parts = base.match(/^(.+):(\d+)$/)
     if( parts ) {
@@ -424,6 +516,11 @@ function resolve_bases (orig_bases, host, rif) {
   })
   
   bases = bases.concat(append)
+
+
+  // second pass: ranges
+  // host:10-12 -> host:10, host:11, host:12
+  // a.b.c.10-12:port -> a.b.c.10:port, a.b.c.11:port, a.b.c.12:port 
 
   return bases
 }

@@ -12,7 +12,11 @@ require('seneca')({tag:'b0'})
     host: HOST,
     port: PORT,
     bases: BASES,
-    broadcast: BROADCAST,
+    discover: {
+      multicast: {
+        address: BROADCAST,
+      }
+    },
     dumpnet: false,
     sneeze: {
       silent: false

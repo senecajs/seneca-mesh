@@ -52,26 +52,25 @@ describe('#mesh', function () {
 
   it('util:resolve_bases', function (done) {
     Assert.equal(
-      mesh.DEFAULT_HOST+':'+mesh.DEFAULT_PORT,
+      '',
       ''+mesh.resolve_bases())
 
     Assert.equal(
-      '192.168.1.2:'+mesh.DEFAULT_PORT+','+
-        mesh.DEFAULT_HOST+':'+mesh.DEFAULT_PORT,
-      ''+mesh.resolve_bases([],'192.168.1.2'))
+      mesh.DEFAULT_HOST+':'+mesh.DEFAULT_PORT+',192.168.1.2:'+mesh.DEFAULT_PORT,
+      ''+mesh.resolve_bases([':'+mesh.DEFAULT_PORT],{host:'192.168.1.2'}, rif))
 
     Assert.equal(
       'foo:'+mesh.DEFAULT_PORT+','+
       'bar:'+mesh.DEFAULT_PORT,
-      ''+mesh.resolve_bases(['foo','bar']))
+      ''+mesh.resolve_bases(['foo','bar'], null, rif))
 
     Assert.equal(
       mesh.DEFAULT_HOST+':33333',
-      ''+mesh.resolve_bases([':33333']))
+      ''+mesh.resolve_bases([':33333'], null, rif))
 
     Assert.equal(
       mesh.DEFAULT_HOST+':33333,'+'zed:33333',
-      ''+mesh.resolve_bases([':33333'], 'zed'))
+      ''+mesh.resolve_bases([':33333'], {host:'zed'}, rif))
 
     Assert.equal(
       '127.0.0.1:'+mesh.DEFAULT_PORT,
@@ -86,11 +85,12 @@ describe('#mesh', function () {
     b0a = 
       Seneca({tag:'b0a', log:'test', debug:{short_logs:true}})
       .error(done)
-      .use('..',{isbase:true, discover:{publish:false}})
+      .use('..',{isbase:true, discover:{stop:true}})
       .ready( function () {
         this.close(setTimeout.bind(this,done,555))
       })
   })
+
 
   it('single', {parallel:false, timeout:5555}, function (done) {
     var b0b, s0b
@@ -98,7 +98,7 @@ describe('#mesh', function () {
     b0b = 
       Seneca({tag:'b0b', log:'silent', debug:{short_logs:true}})
       .error(done)
-      .use('..',{isbase:true, discover:{publish:false}})
+      .use('..',{isbase:true, discover:{stop:true}})
 
     s0b = 
       Seneca({tag:'s0b', log:'silent', debug:{short_logs:true}})
@@ -106,7 +106,7 @@ describe('#mesh', function () {
       .add('a:1',function(msg){this.good({x:msg.i})})
 
     b0b.ready( function() {
-      s0b.use('..',{pin:'a:1', discover:{publish:false}}).ready( function() {
+      s0b.use('..',{pin:'a:1', discover:{stop:true}}).ready( function() {
 
         s0b.act('role:mesh,get:members',function (err, list) {
           Assert.equal(1,list.length)
@@ -131,24 +131,24 @@ describe('#mesh', function () {
     b0 = 
       Seneca({tag:'b0', log:'test'})
       .error(done)
-      .use('..',{isbase:true, discover:{publish:false}})
+      .use('..',{isbase:true, discover:{stop:true}, sneeze:{silent:true}})
 
     s0 = 
       Seneca({tag:'s0', log:'test'})
       .error(done)
-      .use('..',{pin:'a:1', discover:{publish:false}})
+      .use('..',{pin:'a:1', discover:{stop:true}, sneeze:{silent:true}})
       .add('a:1',function(){this.good({x:0})})
 
     s1 = 
       Seneca({tag:'s1', log:'test'})
       .error(done)
-      .use('..',{pins:'a:1', discover:{publish:false}})
+      .use('..',{pins:'a:1', discover:{stop:true}, sneeze:{silent:true}})
       .add('a:1',function(){this.good({x:1})})
     
     c0 = 
       Seneca({tag:'c0', log:'test'})
       .error(done)
-      .use('..',{discover:{publish:false}})
+      .use('..',{discover:{stop:true}, sneeze:{silent:true}})
 
     b0.ready( function () {
       // console.log('b0')
@@ -164,7 +164,7 @@ describe('#mesh', function () {
 
                   c0.act('a:1,s:0',function(e,o){
 
-                    // console.log(0,e,o)
+                    //console.log(0,e,o)
                     Assert.equal(0,o.x)
 
                     c0.act('a:1,s:1',function(e,o){
@@ -237,12 +237,12 @@ describe('#mesh', function () {
       .error(done)
 
     
-    b0.use('..',{isbase:true, discover:{publish:false}}).ready( function() {
-      s0.use('..',{pin:'a:1',model:'actor', discover:{publish:false}}).ready( function() {
-        s1.use('..',{pin:'a:1',model:'actor', discover:{publish:false}}).ready( function() {
-          s2.use('..',{pin:'a:1',model:'actor', discover:{publish:false}}).ready( function() {
-            c0.use('..',{discover:{publish:false}}).ready( function() {
-              c1.use('..',{discover:{publish:false}}).ready( setTimeout.bind(null,do_topology,222) ) })})})})})
+    b0.use('..',{isbase:true, discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
+      s0.use('..',{pin:'a:1',model:'actor', discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
+        s1.use('..',{pin:'a:1',model:'actor', discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
+          s2.use('..',{pin:'a:1',model:'actor', discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
+            c0.use('..',{discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
+              c1.use('..',{discover:{stop:true}, sneeze:{silent:true}}).ready( setTimeout.bind(null,do_topology,222) ) })})})})})
 
     function do_topology() {
       c0.act('role:mesh,get:members', function (err,list) {
@@ -393,22 +393,22 @@ describe('#mesh', function () {
 
 
     
-    b0.use('..',{isbase:true, discover:{publish:false}}).ready( function() {
+    b0.use('..',{isbase:true, discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
       s0.use('..',{
         listen:[
           {pin:'a:1'},
           {pin:'b:1',model:'observe'},
-        ], discover:{publish:false}
+        ], discover:{stop:true}
       }).ready( function() {
 
           s1.use('..',{
             listen:[
               {pin:'c:1'},
               {pin:'b:1',model:'observe'},
-            ], discover:{publish:false}
+            ], discover:{stop:true}
           }).ready( function() {
 
-              c0.use('..',{discover:{publish:false}}).ready( do_abc )})})})
+              c0.use('..',{discover:{stop:true}, sneeze:{silent:true}}).ready( do_abc )})})})
 
 
     function do_abc() {

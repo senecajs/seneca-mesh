@@ -25,6 +25,7 @@
     "client"
   ],
   "dependencies": {
+    "ip": "1.1.3",
     "jsonic": "0.2.2",
     "lodash": "4.5.0",
     "nid": "0.3.2",

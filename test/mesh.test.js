@@ -48,6 +48,13 @@ var netif = {
 
 var rif = Rif(netif)
 
+var test_discover = {
+  stop: true,
+  guess: true,
+  multicast: false,
+  registry: false
+}
+
 describe('#mesh', function () {
 
   it('util:resolve_bases', function (done) {
@@ -85,7 +92,7 @@ describe('#mesh', function () {
     b0a = 
       Seneca({tag:'b0a', log:'test', debug:{short_logs:true}})
       .error(done)
-      .use('..',{isbase:true, discover:{stop:true}})
+      .use('..',{isbase:true, discover:test_discover})
       .ready( function () {
         this.close(setTimeout.bind(this,done,555))
       })
@@ -98,7 +105,7 @@ describe('#mesh', function () {
     b0b = 
       Seneca({tag:'b0b', log:'silent', debug:{short_logs:true}})
       .error(done)
-      .use('..',{isbase:true, discover:{stop:true}})
+      .use('..',{isbase:true, discover:test_discover})
 
     s0b = 
       Seneca({tag:'s0b', log:'silent', debug:{short_logs:true}})
@@ -106,10 +113,10 @@ describe('#mesh', function () {
       .add('a:1',function(msg){this.good({x:msg.i})})
 
     b0b.ready( function() {
-      s0b.use('..',{pin:'a:1', discover:{stop:true}}).ready( function() {
+      s0b.use('..',{pin:'a:1', discover:test_discover}).ready( function() {
 
-        s0b.act('role:mesh,get:members',function (err, list) {
-          Assert.equal(1,list.length)
+        s0b.act('role:mesh,get:members',function (err, out) {
+          Assert.equal(1,out.list.length)
 
           b0b.act('a:1,i:0',function(err,out){
             Assert.equal(0,out.x)
@@ -131,24 +138,24 @@ describe('#mesh', function () {
     b0 = 
       Seneca({tag:'b0', log:'test'})
       .error(done)
-      .use('..',{isbase:true, discover:{stop:true}, sneeze:{silent:true}})
+      .use('..',{isbase:true, discover:test_discover, sneeze:{silent:true}})
 
     s0 = 
       Seneca({tag:'s0', log:'test'})
       .error(done)
-      .use('..',{pin:'a:1', discover:{stop:true}, sneeze:{silent:true}})
+      .use('..',{pin:'a:1', discover:test_discover, sneeze:{silent:true}})
       .add('a:1',function(){this.good({x:0})})
 
     s1 = 
       Seneca({tag:'s1', log:'test'})
       .error(done)
-      .use('..',{pins:'a:1', discover:{stop:true}, sneeze:{silent:true}})
+      .use('..',{pins:'a:1', discover:test_discover, sneeze:{silent:true}})
       .add('a:1',function(){this.good({x:1})})
     
     c0 = 
       Seneca({tag:'c0', log:'test'})
       .error(done)
-      .use('..',{discover:{stop:true}, sneeze:{silent:true}})
+      .use('..',{discover:test_discover, sneeze:{silent:true}})
 
     b0.ready( function () {
       // console.log('b0')
@@ -176,7 +183,7 @@ describe('#mesh', function () {
                         Assert.equal(0,o.x)
                         
                         b0.act('role:mesh,get:members',function(e,o){
-                          Assert.equal(3,o.length)
+                          Assert.equal(3,o.list.length)
 
                           s0.close( function() {
                               
@@ -237,19 +244,19 @@ describe('#mesh', function () {
       .error(done)
 
     
-    b0.use('..',{isbase:true, discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
-      s0.use('..',{pin:'a:1',model:'actor', discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
-        s1.use('..',{pin:'a:1',model:'actor', discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
-          s2.use('..',{pin:'a:1',model:'actor', discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
-            c0.use('..',{discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
-              c1.use('..',{discover:{stop:true}, sneeze:{silent:true}}).ready( setTimeout.bind(null,do_topology,222) ) })})})})})
+    b0.use('..',{isbase:true, discover:test_discover, sneeze:{silent:true}}).ready( function() {
+      s0.use('..',{pin:'a:1',model:'actor', discover:test_discover, sneeze:{silent:true}}).ready( function() {
+        s1.use('..',{pin:'a:1',model:'actor', discover:test_discover, sneeze:{silent:true}}).ready( function() {
+          s2.use('..',{pin:'a:1',model:'actor', discover:test_discover, sneeze:{silent:true}}).ready( function() {
+            c0.use('..',{discover:test_discover, sneeze:{silent:true}}).ready( function() {
+              c1.use('..',{discover:test_discover, sneeze:{silent:true}}).ready( setTimeout.bind(null,do_topology,222) ) })})})})})
 
     function do_topology() {
-      c0.act('role:mesh,get:members', function (err,list) {
-        Assert.equal(5, list.length)
+      c0.act('role:mesh,get:members', function (err,o) {
+        Assert.equal(5, o.list.length)
 
-        c1.act('role:mesh,get:members', function (err,list) {
-          Assert.equal(5, list.length)
+        c1.act('role:mesh,get:members', function (err,o) {
+          Assert.equal(5, o.list.length)
 
           c0.act('role:transport,type:balance,get:target-map,pg:"a:1"', function (err,c0map) {
             Assert.equal(3, c0map['a:1'].targets.length)
@@ -393,22 +400,22 @@ describe('#mesh', function () {
 
 
     
-    b0.use('..',{isbase:true, discover:{stop:true}, sneeze:{silent:true}}).ready( function() {
+    b0.use('..',{isbase:true, discover:test_discover, sneeze:{silent:true}}).ready( function() {
       s0.use('..',{
         listen:[
           {pin:'a:1'},
           {pin:'b:1',model:'observe'},
-        ], discover:{stop:true}
+        ], discover:test_discover
       }).ready( function() {
 
           s1.use('..',{
             listen:[
               {pin:'c:1'},
               {pin:'b:1',model:'observe'},
-            ], discover:{stop:true}
+            ], discover:test_discover
           }).ready( function() {
 
-              c0.use('..',{discover:{stop:true}, sneeze:{silent:true}}).ready( do_abc )})})})
+              c0.use('..',{discover:test_discover, sneeze:{silent:true}}).ready( do_abc )})})})
 
 
     function do_abc() {

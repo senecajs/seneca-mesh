@@ -35,6 +35,17 @@ function mesh (options) {
         max_search: 22,
         search_interval: 111,
       },
+      registry: {
+        // check registry periodically
+        refresh_interval: 1111,
+
+        // remove first entry with this probability
+        // live bases nodes will add themselves back in
+        prune_first_probability: 0.01,
+
+        // leave at least this many base entries
+        prune_bound: 11
+      },
 
       // stop discovery if defined bases are provided
       stop: true
@@ -43,6 +54,13 @@ function mesh (options) {
     dumpnet: false
   }, options)
 
+
+  var bases = []
+  var sneeze
+
+  seneca.add('role:mesh,get:bases', function get_bases (msg, done) {
+    done( null, {bases:[].concat(bases)} )
+  })
 
   var balance_map = {}
   var mid = Nid()
@@ -85,7 +103,9 @@ function mesh (options) {
 
   function init (msg, done) {
 
-    find_bases( options, rif, function (bases) {
+    find_bases( seneca, options, rif, function (found_bases) {
+      bases = found_bases
+
       seneca.log.info({kind:'mesh',host:options.host,port:options.port,bases:bases})
       var sneeze_opts = options.sneeze || {}
 
@@ -153,7 +173,7 @@ function mesh (options) {
           sneeze_opts.identifier + '~' +
           seneca.util.pincanon(config.pin||config.pins) + '~' + Date.now()
 
-        var sneeze = Sneeze( instance_sneeze_opts )
+        sneeze = Sneeze( instance_sneeze_opts )
         
         var meta = {
           config: config,
@@ -183,11 +203,11 @@ function mesh (options) {
             members.push( void 0 === m ? default_make_entry(member) : m )
           })
 
-          this.prior( msg, function( err, list ) {
-            list = list || []
+          this.prior( msg, function( err, out ) {
+            var list = out && out.list || []
             var outlist = list.concat(members)
 
-            done( null, outlist )
+            done( null, {list:outlist} )
           })
         })
 
@@ -297,25 +317,32 @@ function resolve_interface (spec, rif) {
 
 
 
-function find_bases (options, rif, done) {
+function find_bases (seneca, options, rif, done) {
   var bases = []
 
-  addbase_funcmap.custom = options.discover.custom
+  options.discover = options.discover || {}
+  addbase_funcmap.custom = function (seneca, options, bases, next) {
+    options.discover.custom(seneca, options, bases, function (add, stop) {
+      add = add || []
+      next( add, null == stop ? 0 < add.length : !!stop )
+    })}
 
   // order is significant
   var addbases = [
     'defined',
-    'guess',
+    'registry',
     'multicast',
-    'kvstore',
     'custom',
+    'guess',
   ]
 
   var abI = -1
+  var addbase
 
   next()
 
   function next (add, stop) {
+    //console.log(addbase,add)
     bases = bases.concat(add || [])
     if (stop && options.discover.stop) abI = addbases.length
 
@@ -325,7 +352,7 @@ function find_bases (options, rif, done) {
            && abI < addbases.length) 
     { ++abI }
 
-    var addbase = addbases[abI]
+    addbase = addbases[abI]
 
     if( null == addbase ) {
       bases = resolve_bases( 
@@ -337,12 +364,12 @@ function find_bases (options, rif, done) {
       return done(bases)
     }
 
-    addbase_funcmap[addbase](options, bases, next)
+    addbase_funcmap[addbase](seneca, options, bases, next)
   }
 }
 
 var addbase_funcmap = {
-  defined: function (options, bases, next) {
+  defined: function (seneca, options, bases, next) {
     var add = 
           (options.sneeze||{}).bases || options.bases || options.remotes || []
 
@@ -355,7 +382,7 @@ var addbase_funcmap = {
   },
 
   // order significant! depends on defined as uses bases.length
-  guess: function (options, bases, next) {
+  guess: function (seneca, options, bases, next) {
     var add = []
     var host = options.host
 
@@ -367,10 +394,10 @@ var addbase_funcmap = {
     }
     
     // console.log('FB guess',add)
-    next(add, 0 < add.length)
+    next(add)
   },
 
-  multicast: function (options, bases, next) {
+  multicast: function (seneca, options, bases, next) {
     var add = []
     var opts = ((options.discover||{}).multicast||{})
 
@@ -392,7 +419,6 @@ var addbase_funcmap = {
 
     var findCount = 0
     var fi = setInterval(function () {
-      console.log(findCount)
       var count = 0
       d.eachNode(function (node) {
         var nd = node.advertisement
@@ -417,34 +443,67 @@ var addbase_funcmap = {
 
       findCount++
     }, opts.search_interval)
-  }
-}  
+  },
 
-/*
-          if( 0 === count && options.discover.guess ) {
-            var parts = (options.host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/)||[]).slice(1,5)
-            if( 4 === parts.length ) {
-              //var lastpart = parseInt(parts[0])
-              //if( lastpart < 253 ) bases.append(parts.slice(1,3).concat( (lastpart+1) ))
-              //if( 2 < lastpart ) bases.append(parts.slice(1,3).concat( (lastpart-1) ))
-              for( var i = 1; i < 255; ++i ) {
-                var gb = parts.slice(0,3).concat(''+i).join('.')
-                if( gb != options.host ) {
-                  bases.push(gb+':'+DEFAULT_PORT)
-                }
-              }
-            }
+  
+  registry: function (seneca, options, bases, next) {  
+    var first = true
+
+    var base_addr = (options.host||DEFAULT_HOST)+':'+
+          (options.port||DEFAULT_PORT)
+    
+    if( options.isbase ) {
+      var ri = options.discover.registry.refresh_interval
+      ri = ri+(ri*(Math.random()-0.5))
+      setInterval(getset_bases, ri)
+    }
+
+    getset_bases()
+    
+    function getset_bases() {
+      seneca.act(
+        'role:registry,cmd:get,default$:{}',
+        {key:'seneca-mesh/'+(options.tag||'-')+'/bases'},
+        function (err, out) {
+          if( err ) return
+
+          var add = (out.value||'').split(',')
+          add = add.filter(function (base) {
+            return 0 < base.length
+          })
+
+          if( first ) {
+            first = false
+            //console.log('FB registry',add)
+            next(add, 0 < add.length)
           }
 
-    else {
-      done(bases)
+          if( options.isbase ) {
+            var prune_first = Math.random() < 
+                  options.discover.registry.prune_first_probability
+
+            if( prune_first || -1 === add.indexOf(base_addr) ) {
+              add.push(base_addr)
+              add = _.uniq(add)
+
+              if( prune_first && options.discover.registry.prune_bound < add.length ) {
+                add.shift()
+              }
+
+              var val = add.join(',')
+              
+              seneca.act(
+                'role:registry,cmd:set,default$:{}',
+                {
+                  key:'seneca-mesh/'+(options.tag||'-')+'/bases', 
+                  value:val
+                })
+            }
+          }
+        })
     }
   }
-  else {
-    done(bases)
-  }
-}
-*/
+}  
 
 
 function default_make_entry (member) {

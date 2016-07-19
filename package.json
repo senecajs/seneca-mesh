@@ -42,7 +42,7 @@
     "lab": "6.2.0",
     "seneca": "senecajs/seneca",
     "seneca-balance-client": "0.5.0",
-    "seneca-registry-consul": "rjrodger/seneca-consul-registry"
+    "seneca-consul-registry": "rjrodger/seneca-consul-registry"
   },
   "peerDependencies": {
     "seneca": "*"

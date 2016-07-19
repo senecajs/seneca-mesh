@@ -1,11 +1,11 @@
 
 container : 
-	cp ../../../mesh.js ../../service-foo.js .
+	cp ../../../mesh.js ../../foo.js .
 	docker build -t mesh-foo .
 	docker images | grep mesh-foo
 
 run :
-	docker run -d --net=host -e HOST=@$(NETIF) -e BROADCAST=$(BROADCAST) mesh-foo
+	docker run -d --net=host -e HOST=@$(NETIF) -e BROADCAST=$(BROADCAST) -e BASES=$(BASES) -e REGISTRY='$(REGISTRY)' mesh-foo
 	docker ps
 
 stop :

@@ -104,6 +104,8 @@ function mesh (options) {
   function init (msg, done) {
 
     find_bases( seneca, options, rif, function (found_bases) {
+      console.log(options)
+
       bases = found_bases
 
       seneca.log.info({kind:'mesh',host:options.host,port:options.port,bases:bases})

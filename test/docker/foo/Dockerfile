@@ -3,9 +3,9 @@
 FROM mesh-shared
 
 ADD mesh.js /
-ADD service-foo.js /srv/
+ADD foo.js /srv/
 
-CMD ["node", "/srv/service-foo.js"]
+CMD ["node", "/srv/foo.js"]
 
 
 

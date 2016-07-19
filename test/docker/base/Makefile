@@ -5,7 +5,7 @@ container :
 	docker images | grep mesh-base
 
 run :
-	docker run -d --net=host -e HOST=@$(NETIF) -e BROADCAST=$(BROADCAST) mesh-base
+	docker run -d --net=host -e HOST=@$(NETIF) -e BROADCAST=$(BROADCAST) -e BASES=$(BASES) -e REGISTRY='$(REGISTRY)' mesh-base
 	docker ps
 
 stop :

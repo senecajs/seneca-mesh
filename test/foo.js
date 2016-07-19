@@ -19,7 +19,7 @@ require('seneca')({tag:'foo'})
       multicast: {
         address: BROADCAST,
       },
-      registry: bREGISTRY
+      registry: REGISTRY
     },
     dumpnet: false,
     sneeze: {

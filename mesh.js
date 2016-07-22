@@ -402,7 +402,7 @@ var addbase_funcmap = {
       add.push(DEFAULT_HOST+':'+DEFAULT_PORT)
     }
     
-    // console.log('FB guess',add)
+    //console.log('FB guess',add)
     next(add)
   },
 

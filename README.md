@@ -158,9 +158,9 @@ TODO
 
 
 ## Contributing
-The [Seneca.js org][] encourages __open__ and __safe__ participation.
+The [Seneca.js org][senecajs.org] encourages __open__ and __safe__ participation.
 
-- __[Code of Conduct][]__
+- __[Code of Conduct][CoC]__
 
 If you feel you can help in any way, be it with documentation, examples, 
 extra testing, or new features please get in touch.
@@ -183,6 +183,6 @@ Licensed under [MIT][].
 [gitter-url]: https://gitter.im/rjrodger/seneca
 [github issue]: https://github.com/rjrodger/seneca-mesh/issues
 [Balance]: https://github.com/rjrodger/seneca-balance-client
-[Lead]: https://github.com/rjrodger/seneca-balance-client
+[Lead]: https://github.com/rjrodger/
 [Sponsor]: http://nearform.com
 [CoC]: http://senecajs.org/contribute/details/code-of-conduct.html

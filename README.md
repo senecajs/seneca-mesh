@@ -1,5 +1,5 @@
 ![Seneca](http://senecajs.org/files/assets/seneca-logo.png)
-> Mesh your [Seneca.js][] microservices
+> Mesh your [Seneca.js][] microservices together - no more service discovery!
 
 # seneca-mesh
 [![npm version][npm-badge]][npm-url]
@@ -9,9 +9,18 @@
 - __Lead Maintainer:__ [Richard Rodger][Lead]
 - __Sponsor:__ [nearForm][Sponsor]
 
-This plugin allows you to wire up seneca services using automatic
-meshing. Uses the SWIM gossip algorithm for automatic configuration 
-of the microservice network.
+This plugin allows you to wire up Seneca microservices using automatic
+meshing. It uses the [SWIM gossip algorithm][] for automatic service
+discovery within the microservice network.
+
+To join the network, all a service has to do is contact one other
+service already in the network. The network then shares information
+about which services respond to which patterns. There is no need to
+configure the location of individual services anywhere.
+
+Many thanks to Rui Hu for the excellent
+[swim](https://github.com/mrhooray/swim-js) module that makes this
+work.
 
 If you're using this module, and need help, you can:
 
@@ -25,7 +34,7 @@ help get you up and running quickly.
 
 
 ## Install
-To install, simply use npm
+To install, use npm
 
 ```sh
 npm install seneca-balance-client
@@ -40,102 +49,214 @@ require('seneca')()
   .use('mesh', { ... options ... })
 ```
 
-## Test
-To run tests, simply use npm:
+## Quick Example
+
+Create a microservice. The service translates color names into
+hex values.
+
+```js
+// color-service.js
+var Seneca = require('seneca')
+
+Seneca({log: 'test'})
+
+  // provide an action for the format:hex pattern
+  .add('format:hex', function (msg, done) {
+
+    // red is the only color supported!
+    var color = 'red' === msg.color ? '#FF0000' : '#FFFFFF' 
+
+    done(null, {
+      color: color
+    })
+  })
+
+  // load the mesh plugin
+  .use('mesh', {
+
+    // this is a base node
+    isbase: true,
+
+    // this service will respond to the format:hex pattern
+    pin: 'format:hex'
+  })
+```
+
+Run the service (and leave it running) using:
 
 ```sh
-npm run test
+$ node color-service.js
 ```
 
-## Example One
-Demonstrates connecting two services together using a base node. Base nodes 
-are used so that other nodes have a known reference point to join the network.
-They are only required for the inital mesh, once the mesh is live, it becomes
-redundant.
-
-### base.js
+Create a client for the service. This client joins the mesh network,
+performs an action, and then leaves.
 
 ```js
-require('seneca')()
-  .use('mesh',{base:true})
+// color-client.js
+var Seneca = require('seneca')
 
-// start first!
-// $ node base.js
+Seneca({log: 'test'})
+
+  // load the mesh plugin
+  .use('mesh')
+
+  // send a message out into the network
+  // the network will know where to send format:hex messages
+  .act({format: 'hex', color: 'red'}, function (err, out) {
+
+    // prints #FF0000
+    console.log(out.color) 
+
+    // disconnect from the network
+    this.close()
+  })
 ```
 
-### service-foo.js
+Run the client in a separate terminal using:
 
-```js
-require('seneca')()
-  .add( 'foo:1', function (msg, done) {
-    done( null, {x:1,v:100+msg.v} )
-  })
-
-  // this service handles foo:1 messages
-  .use('mesh', { auto:true, pin:'foo:1' })
-
-  .ready( function () {
-    var seneca = this
-
-    setInterval( function() {
-
-      // use bar:1, even though location of
-      // service-bar is not configured!
-      seneca.act('bar:1,v:2', console.log)
-    }, 3000 )
-  })
-
-// $ node service-foo.js
+```sh
+$ node color-service.js
 ```
 
-### service-bar.js
+The client finds the service using the mesh network. In this simple
+case, the `color-service` is configured as a *base* node, which means
+that it listens on a pre-defined local UDP port. The client checks for
+base nodes on this port. 
 
-```js
-require('seneca')()
-  .add( 'bar:1', function (msg, done) {
-    done( null, {x:1,v:100+msg.v} )
-  })
+**Notice that the client did not need any infomation about the service
+  location.**
 
-  // this service handles bar:1 messages
-  .use('mesh', { auto:true, pin:'bar:1' })
+To join a network, you do need to know where the base nodes are. Once
+you've joined, you don't even need the bases anymore, as the network keeps
+you informed of new services.
 
-  .ready( function () {
-    var seneca = this
+To find base nodes, _seneca-mesh_ provides support for discovery via
+configuration, multicast, service registries, and custom
+approaches. Base nodes are **not** used for service discovery. They
+serve only as a convenient means for new nodes to join the network.
 
-    setInterval( function() {
+The [examples](blob/master/examples) folder contains code for this
+example, and other scenarios demonstrating more complex network
+configurations:
 
-      // use foo:1, even though location of
-      // service-foo is not configured!
-      seneca.act('foo:1,v:2', console.log)
-    }, 3000 )
-  })
+  * [local-dev-mesh](blob/master/examples/20-local-dev-mesh): local development, including a web service API.
+  * [multicast-discovery](blob/master/examples/30-multicast-discovery): multicast allows base nodes to discover each other - zero configuration!
+  * [consul-discovery](blob/master/examples/30-consul-discovery): base node discovery using a service registry, when multicast is not available.
 
-// $ node service-bar.js
-```
+As a counterpoint to mesh-based configuration, the
+[local-dev](blob/master/examples/10-local-dev) example reminds of the
+burden of traditional service location.
 
-The _foo_ and _bar_ services call each other, but neither requires
-configuration information!
 
-## Example Two
-The example below shows you how to use consume and observe models on 
-individual pins. By default patterns are created in consume mode. If
-observe mode is used __all__ action handlers are called for that 
-pattern.
+## Deployment
+
+Seneca-mesh has been tested under the following deployment configurations:
+
+  * Single development machine using localhost (loopback network interface)
+  * Multiple machines using VirtualBox (enable host network)
+  * Docker containers using host networking (--net="host")
+  * Docker swarm using an overlay network (not multicast not supported here by Docker)
+  * Amazon Web Services on multiple instances (multicast not supported by Amazon)
+
+See the [test](/blob/master/test) and [test/docker](/blob/master/test/docker) folders for example code.
+
+See also the [Full system](#Full systems) examples for deployment configurations.
+
+Multicast service discovery is the most desirable from an ease of
+deployment perspective, as you don't have to do anything - base nodes
+discover each other, and services discover base nodes. Unfortunately
+multicast networking is often not supported by the underlying network.
+
+As best-practice deployment model, consider running a least one base
+node per machine. This provides considerable redundancy for services
+joining the network.
+
+
+## Base discovery
+
+Once a service has joined the SWIM network, it will find all the other
+services. SWIM solves that problem for you, which is why it is so
+awesome.
+
+But you stil have to join the network initially. You can do so by
+pointing a new service at any other service, and it will "just
+work". However in practice it is useful to have the concept of a base
+node that provides bootstrapping functionality as a its primary
+purpose. The problem then reduces to finding base nodes.
+
+Note: not all base nodes need to alive - you can provide a list of
+base nodes containing nodes that are down. SWIM will continue anyway
+so long as at least one node is up.
+
+
+Seneca-mesh provides the following strategies:
+
+  * _defined_: the base nodes are pre-defined and provided to the
+    service via configuration or environment variables. This is no
+    worse than having other kinds of well-known services in your
+    system, such as databases. By following a consistent approach you
+    can provide a list of nodes dynamically - e.g. using the AWS CLI
+    to list all instances in your VPC (`aws ec2 describe-instances`).
+
+  * _custom_: you can provide a custom function that returns a list of
+    bases, resolved by your own custom approach.
+
+  * _registry_: load the list of bases from a key-value registry such
+    as [Consul](consul.io). This strategy leverages the
+    [seneca-registry](https://www.npmjs.com/package/seneca-registry)
+    set of plugins, so you can use not only _consul_, but also _etcd_,
+    _ZooKeeper_, and so on.
+
+  * _multicast_: base nodes broadcast their existence via IP
+    multicast. New services briefly listen to the broadcast to get the
+    list of base nodes, and then drop out. This keeps broadcast
+    traffic to a minimum. Note: you need to get the broadcast address
+    right for your network - time to run `ifconfig -a`!
+
+  * _guess_: If a base node is running locally, then the service can
+    find it by searching at the default location: UDP 127.0.0.1:39999.
+    If you've specified a different IP for the service to bind to,
+    then that IP will also be checked. This is the usual mode for
+    local development.
+
+
+The strategies are executed in the order listed above. By default,
+_seneca-mesh_ only moves onto the next strategy if the current one
+failed to produce any bases (this is configurable).
+
+
+<!--
+## Message flows
+
+
+
+-->
+
+
+## Options
+
+The _seneca-mesh_ plugins accepts the following set of options. Specify these when loading the plugin:
 
 ```js
 require('seneca')
-  .use('my-plugin')
-  .use('mesh', {
-    auto: true,
-    listen: [
-      {pin: 'role:search,cmd:upsert', model: 'consume'},
-      {pin: 'role:search,cmd:search', model: 'consume'},
-      {pin: 'role:info,info:updated', model: 'observe'}
-    ]
-  })
+    .use('mesh', {
+      // options go here
+    })
 ```
 
-## Further examples
+The options are:
+
+  * _isbase_: Make this node a base node. Default: false.
+
+  * _bases_: An array of pre-defined base nodes. Specify a strings in
+             the format: IP:PORT. Default: [].
+
+  * _pin_: the action pattern that this service will respond to. Default: null
+
+
+
+
+## Full systems
 
 You can review the source code of these example projects to see seneca-mesh in action:
 
@@ -145,17 +266,14 @@ You can review the source code of these example projects to see seneca-mesh in a
 
 
 
-<!--
-## Usage
-
-TODO
 
 
-## Releases
+## Test
+To run tests, use npm:
 
-TODO
--->
-
+```sh
+npm run test
+```
 
 ## Contributing
 The [Seneca.js org][] encourages __open__ and __safe__ participation.
@@ -186,3 +304,4 @@ Licensed under [MIT][].
 [Lead]: https://github.com/rjrodger/
 [Sponsor]: http://nearform.com
 [CoC]: http://senecajs.org/contribute/details/code-of-conduct.html
+[SWIM gossip algorithm]: https://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf

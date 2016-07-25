@@ -22,6 +22,8 @@ var DEFAULT_PORT = module.exports.DEFAULT_PORT = 39999
 function mesh (options) {
   var seneca = this
 
+  var closed = false
+
   // Default option values
   options = seneca.util.deepextend({
     auto: true,
@@ -104,7 +106,7 @@ function mesh (options) {
   function init (msg, done) {
 
     find_bases( seneca, options, rif, function (found_bases) {
-      //console.log(options)
+      //console.log('FOUND',found_bases)
 
       bases = found_bases
 
@@ -197,6 +199,7 @@ function mesh (options) {
         sneeze.on('ready', done)
 
         seneca.add('role:seneca,cmd:close', function(msg, done) {
+          closed = true
           if( sneeze ) {
             sneeze.leave()
           }
@@ -224,6 +227,8 @@ function mesh (options) {
         sneeze.join( meta )
 
         function add_client( meta ) {
+          if( closed ) return
+
           var config = meta.config || {}
 
           var pins = config.pins || config.pin || []
@@ -273,6 +278,8 @@ function mesh (options) {
 
 
         function remove_client( meta ) {
+          if( closed ) return
+
           var config = meta.config || {}
 
           var pins = config.pins || config.pin || []
@@ -333,15 +340,16 @@ function find_bases (seneca, options, rif, done) {
   addbase_funcmap.custom = function (seneca, options, bases, next) {
     options.discover.custom(seneca, options, bases, function (add, stop) {
       add = add || []
+      //console.log('FB custom',add)
       next( add, null == stop ? 0 < add.length : !!stop )
     })}
 
   // order is significant
   var addbases = [
     'defined',
+    'custom',
     'registry',
     'multicast',
-    'custom',
     'guess',
   ]
 
@@ -351,7 +359,7 @@ function find_bases (seneca, options, rif, done) {
   next()
 
   function next (add, stop) {
-    //console.log(addbase,add)
+    //console.log(addbase,add,stop)
     bases = bases.concat(add || [])
     if (stop && options.discover.stop) abI = addbases.length
 

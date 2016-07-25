@@ -366,6 +366,14 @@ describe('#mesh', function () {
 
       
     function close() {
+      c1.close()
+      c0.close()
+      s2.close()
+      s0.close()
+      b0.close()
+      setTimeout(done,555)
+
+      /*
       c1.close(
         c0.close.bind(
           c0,s2.close.bind(
@@ -373,6 +381,7 @@ describe('#mesh', function () {
                 s0,b0.close.bind(
                   b0,setTimeout.bind(this,done,555))))))
 
+       */
     }
 
   })
@@ -448,12 +457,68 @@ describe('#mesh', function () {
 
       
     function close() {
-      c0.close(
-        s1.close.bind(
-          s1,s0.close.bind(
-            s0,b0.close.bind(
-              b0,setTimeout.bind(this,done,555)))))
+      c0.close()
+      s1.close()
+      s0.close()
+      b0.close()
+      setTimeout(done,555)
     }
+  })
+
+
+  it('single-custom', {parallel:false, timeout:5555}, function (done) {
+    var b0b, s0b
+
+    function custom_bases (seneca, options, bases, next) {
+      next(['127.0.0.1:39901'])
+    }
+
+    b0b = 
+      Seneca({tag:'b0b', log:'silent', debug:{short_logs:true}})
+      .error(done)
+      .use('..',{
+        isbase: true, 
+        port: 39901,
+        sneeze: {
+          silent: true
+        }, 
+        discover: {
+          custom: custom_bases
+        }})
+
+    s0b = 
+      Seneca({tag:'s0b', log:'silent', debug:{short_logs:true}})
+      .error(done)
+      .add('a:1',function(msg){this.good({x:msg.i})})
+
+    b0b.ready( function() {
+      s0b.use('..',{
+        pin:'a:1', 
+        discover: {
+          sneeze: {
+            silent: true
+          }, 
+          custom: custom_bases
+        }})
+        .ready( function() {
+
+          s0b.act('role:mesh,get:members',function (err, out) {
+            Assert.equal(1,out.list.length)
+
+            b0b.act('a:1,i:0',function(err,out){
+              Assert.equal(0,out.x)
+              
+              b0b.act('a:1,i:1',function(err,out){
+                Assert.equal(1,out.x)
+                
+                s0b.close()
+                b0b.close()
+                setTimeout(done,555)
+              })
+            })
+          })
+        })
+    })
   })
 })
 

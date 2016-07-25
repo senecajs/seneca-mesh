@@ -160,20 +160,20 @@ TODO
 ## Contributing
 The [Seneca.js org][] encourages __open__ and __safe__ participation.
 
-- __[Code of Conduct][]__
+- __[Code of Conduct][CoC]__
 
 If you feel you can help in any way, be it with documentation, examples, 
 extra testing, or new features please get in touch.
 
 
 ## License
-Copyright (c) 2015, Richard Rodger and other contributors.
+Copyright (c) 2015-2016, Richard Rodger and other contributors.
 Licensed under [MIT][].
 
 [MIT]: ./LICENSE
 [npm-badge]: https://badge.fury.io/js/seneca-mesh.svg
 [npm-url]: https://badge.fury.io/js/seneca-mesh
-[Senecajs org]: https://github.com/senecajs/
+[Seneca.js org]: https://github.com/senecajs/
 [Seneca.js]: https://www.npmjs.com/package/seneca
 [@senecajs]: http://twitter.com/senecajs
 [senecajs.org]: http://senecajs.org/
@@ -183,6 +183,6 @@ Licensed under [MIT][].
 [gitter-url]: https://gitter.im/rjrodger/seneca
 [github issue]: https://github.com/rjrodger/seneca-mesh/issues
 [Balance]: https://github.com/rjrodger/seneca-balance-client
-[Lead]: https://github.com/rjrodger/seneca-balance-client
+[Lead]: https://github.com/rjrodger/
 [Sponsor]: http://nearform.com
 [CoC]: http://senecajs.org/contribute/details/code-of-conduct.html

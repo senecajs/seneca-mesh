@@ -135,16 +135,16 @@ configuration, multicast, service registries, and custom
 approaches. Base nodes are **not** used for service discovery. They
 serve only as a convenient means for new nodes to join the network.
 
-The [examples](blob/master/examples) folder contains code for this
+The [examples](/blob/master/examples) folder contains code for this
 example, and other scenarios demonstrating more complex network
 configurations:
 
-  * [local-dev-mesh](blob/master/examples/20-local-dev-mesh): local development, including a web service API.
-  * [multicast-discovery](blob/master/examples/30-multicast-discovery): multicast allows base nodes to discover each other - zero configuration!
-  * [consul-discovery](blob/master/examples/30-consul-discovery): base node discovery using a service registry, when multicast is not available.
+  * [local-dev-mesh](/blob/master/examples/20-local-dev-mesh): local development, including a web service API.
+  * [multicast-discovery](/blob/master/examples/30-multicast-discovery): multicast allows base nodes to discover each other - zero configuration!
+  * [consul-discovery](/blob/master/examples/30-consul-discovery): base node discovery using a service registry, when multicast is not available.
 
 As a counterpoint to mesh-based configuration, the
-[local-dev](blob/master/examples/10-local-dev) example reminds of the
+[local-dev](/blob/master/examples/10-local-dev) example reminds of the
 burden of traditional service location.
 
 
@@ -225,12 +225,103 @@ _seneca-mesh_ only moves onto the next strategy if the current one
 failed to produce any bases (this is configurable).
 
 
-<!--
 ## Message flows
 
+Each service speficies the messages patterns that it cares about using
+the _pin_ setting. As a convenience, you can use _pin_ at the top
+level of the options, however the more complete form is an array of
+patterns specifications listed in the _listen_ option.
+
+Thus
+
+```js
+seneca.use('mesh', {
+  pin: 'foo:bar'
+})
+```
+
+is equivalent to:
+
+```js
+seneca.use('mesh', {
+  listen: [
+    {pin: 'foo:bar'}
+  ]
+})
+```
+
+Each entry in the _listen_ array specifies the listening modesl for a
+given pattern. In particular, you can specify that the listening model:
+
+  * _consume_: assume the message is from a work queue; consume the message, and generate a reply. This is the default.
+  * _observe_: assume the message is publisjed to multiple services; do not generate a reply
+
+As an example, consider a microservice that generates HTML
+content. The `get:content` message expects a reply containing the HTML
+content, and is intended for just one instance of the service, to
+avoid redundant work. The `clear:cache` message is published to all
+instances of the service to indicate that underlying data for the HTML
+content has changed, and the content must be regenerated for the nect
+`get:content` message. Define the mesh patterns as follows:
 
 
--->
+```js
+seneca.use('mesh', {
+  listen: [
+    {pin: 'get:content'}, // model:consume; the default
+    {pin: 'clear:cache', model:'observe'} 
+  ]
+})
+```
+
+Seneca-mesh uses the
+[HTTP transport](github.com/senecajs/seneca-transport) by default. To
+use other transports, you can add additional options to each entry of the listen
+array. These options are passed to the transport system as if you have
+called `seneca.listen` directly:
+
+
+```js
+seneca.use('redis-transport')
+seneca.use('mesh', {
+  listen: [
+    {pin: 'get:content'}, // model:consume; the default
+    {pin: 'clear:cache', model:'observe', type:'redis'} 
+  ]
+})
+```
+
+## Message Patterns
+
+### `role:mesh,get:members`
+
+You can send this message to any node, and the response will be a list
+of all known patterns in the network.
+
+Here's a useful little service that lets you submit messages to the network via a REPL:
+
+
+```js
+require('seneca')({
+  tag: 'repl',
+  log: { level: 'none' }
+})
+  .use('mesh')
+  .repl({
+    port: 10001,
+    alias: {
+      m: 'role:mesh,get:members'      
+    }
+  })
+```
+
+And on the command line:
+
+```sh
+# telnet localhost 10001
+```
+
+The alias `m` can be used as a shortcut.
 
 
 ## Options
@@ -253,7 +344,40 @@ The options are:
 
   * _pin_: the action pattern that this service will respond to. Default: null
 
+  * _listen_: an array of action patterns that this service will respond to. Default: null
 
+  * _stop_: base node discovery stops as soon as a discovery
+    strategies provides a list of suggested nodes. Default: true
+
+  * _discover_: define the base node discovery options:
+
+    * _defined_: use defined base nodes, specified via the _bases_
+      option. Default: true
+
+    * _custom_: provide a function with signature `function (seneca,
+      options, bases, next)` that returns an array of base nodes. See
+      unit test [`single-custom`](/blob/master/test/mesh.test.js) for
+      an example. Default: false
+
+    * _registry_: use the `role:registry` patterns to load the list of
+      base nodes. Set to false to disable. Default is a set of
+      sub-options - see code for details.
+
+    * _multicast_: base nodes broadcast their existence via IP
+    multicast. New services briefly listen to the broadcast to get the
+    list of base nodes, and then drop out. This keeps broadcast
+    traffic to a minimum. Note: you need to get the broadcast address
+    right for your network - time to run `ifconfig -a`!
+
+    * _multicast_: use IP multicast to find other base bodes. Set to
+      false to disable. Default is a set of sub-options - see code for
+      details. In particular:
+
+      * _address_: the broadcast address of the network interface used
+        for multicast.
+
+    * _guess_: Guess the location of a base by assuming it is on the
+      same host. Default: true.
 
 
 ## Full systems
@@ -263,9 +387,6 @@ You can review the source code of these example projects to see seneca-mesh in a
 * [NodeZoo Live system](https://github.com/nodezoo/nodezoo-system)
 * [NodeZoo Workshop, iteration 5](https://github.com/nodezoo/nodezoo-workshop#iteration-05-mesh-networking)
 * [ramanajun.io twitter clone](https://github.com/senecajs/ramanujan)
-
-
-
 
 
 ## Test

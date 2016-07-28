@@ -6,7 +6,9 @@ Seneca({tag:'client', log:'silent'})
   })
   .use('../..',{
     discover: {
-      multicast: false
+      multicast: {
+        active: false
+      }
     }
   })
   .act(

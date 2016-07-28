@@ -352,32 +352,35 @@ The options are:
   * _discover_: define the base node discovery options:
 
     * _defined_: use defined base nodes, specified via the _bases_
-      option. Default: true
+      option.
+      * _active_: activate this discovery strategy. Default: true
 
     * _custom_: provide a function with signature `function (seneca,
       options, bases, next)` that returns an array of base nodes. See
       unit test [`single-custom`](/blob/master/test/mesh.test.js) for
-      an example. Default: false
+      an example. 
+      * _active_: activate this discovery strategy. Default: true
+
+      * _find_: the custom function
 
     * _registry_: use the `role:registry` patterns to load the list of
       base nodes. Set to false to disable. Default is a set of
       sub-options - see code for details.
-
+      * _active_: activate this discovery strategy. Default: true
+      
     * _multicast_: base nodes broadcast their existence via IP
     multicast. New services briefly listen to the broadcast to get the
     list of base nodes, and then drop out. This keeps broadcast
     traffic to a minimum. Note: you need to get the broadcast address
     right for your network - time to run `ifconfig -a`!
-
-    * _multicast_: use IP multicast to find other base bodes. Set to
-      false to disable. Default is a set of sub-options - see code for
-      details. In particular:
+      * _active_: activate this discovery strategy. Default: true
 
       * _address_: the broadcast address of the network interface used
         for multicast.
 
     * _guess_: Guess the location of a base by assuming it is on the
       same host. Default: true.
+      * _active_: activate this discovery strategy. Default: true
 
 
 ## Full systems

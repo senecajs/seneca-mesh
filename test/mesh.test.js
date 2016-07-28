@@ -50,9 +50,9 @@ var rif = Rif(netif)
 
 var test_discover = {
   stop: true,
-  guess: true,
-  multicast: false,
-  registry: false
+  guess: {active: true},
+  multicast: {active: false},
+  registry: {active: false}
 }
 
 describe('#mesh', function () {
@@ -149,7 +149,7 @@ describe('#mesh', function () {
     s1 = 
       Seneca({tag:'s1', log:'test'})
       .error(done)
-      .use('..',{pins:'a:1', discover:test_discover, sneeze:{silent:true}})
+      .use('..',{pin:'a:1', discover:test_discover, sneeze:{silent:true}})
       .add('a:1',function(){this.good({x:1})})
     
     c0 = 
@@ -483,7 +483,10 @@ describe('#mesh', function () {
           silent: true
         }, 
         discover: {
-          custom: custom_bases
+          custom: {
+            active: true,
+            find: custom_bases
+          }
         }})
 
     s0b = 
@@ -495,10 +498,10 @@ describe('#mesh', function () {
       s0b.use('..',{
         pin:'a:1', 
         discover: {
-          sneeze: {
-            silent: true
-          }, 
-          custom: custom_bases
+          custom: {
+            active: true,
+            find: custom_bases
+          }
         }})
         .ready( function() {
 

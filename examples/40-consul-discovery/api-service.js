@@ -6,7 +6,13 @@ Seneca({tag:'api'})
   .use('consul-registry', {
     host: '127.0.0.1'
   })
-  .use('../..')
+  .use('../..', {
+    discover: {
+      multicast: {
+        active: false
+      }
+    }
+  })
   .ready(function () {
     var seneca = this
     var server = new Hapi.Server()

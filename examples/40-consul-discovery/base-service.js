@@ -8,7 +8,9 @@ Seneca({tag:'base'})
     isbase: true,
     port: 39002,
     discover: {
-      multicast: false
+      multicast: {
+        active: false
+      }
     }
   })
   .ready(function () {

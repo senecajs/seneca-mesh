@@ -8,7 +8,9 @@ Seneca({tag:'hex'})
   .use('../..', {
     pin: 'role:color,format:hex',
     discover: {
-      multicast: false
+      multicast: {
+        active: false
+      }
     }
   })
   .ready(function () {

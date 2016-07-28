@@ -4,7 +4,7 @@ var HOST = process.env.HOST || process.argv[2]
 var PORT = process.env.PORT || process.argv[3] || 8080
 var BASES = (process.env.BASES || process.argv[4] || '').split(',')
 var BROADCAST = process.env.BROADCAST
-var REGISTRY = JSON.parse(process.env.REGISTRY||false)
+var REGISTRY = JSON.parse(process.env.REGISTRY||'{"active":false}')
 
 var Seneca = require('seneca')
 

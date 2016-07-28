@@ -4,7 +4,7 @@
 var HOST = process.env.HOST || process.argv[2]
 var BASES = (process.env.BASES || process.argv[3] || '').split(',')
 var BROADCAST = process.env.BROADCAST
-var REGISTRY = JSON.parse(process.env.REGISTRY||false)
+var REGISTRY = JSON.parse(process.env.REGISTRY||'{"active":false}')
 
 require('seneca')({tag:'bar'})
   .add( 'bar:1', function (msg, done) {

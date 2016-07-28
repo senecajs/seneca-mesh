@@ -8,7 +8,9 @@ Seneca({tag:'rgb'})
   .use('../..', {
     pin: 'role:color,format:rgb',
     discover: {
-      multicast: false
+      multicast: {
+        active: false
+      }
     }
   })
   .ready(function () {

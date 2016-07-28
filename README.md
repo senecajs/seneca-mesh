@@ -115,7 +115,7 @@ Seneca({log: 'test'})
 Run the client in a separate terminal using:
 
 ```sh
-$ node color-service.js
+$ node color-client.js
 ```
 
 The client finds the service using the mesh network. In this simple

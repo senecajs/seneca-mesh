@@ -64,7 +64,7 @@ Seneca({log: 'test'})
   .add('format:hex', function (msg, done) {
 
     // red is the only color supported!
-    var color = 'red' === msg.color ? '#FF0000' : '#FFFFFF' 
+    var color = 'red' === msg.color ? '#FF0000' : '#FFFFFF'
 
     done(null, {
       color: color
@@ -105,7 +105,7 @@ Seneca({log: 'test'})
   .act({format: 'hex', color: 'red'}, function (err, out) {
 
     // prints #FF0000
-    console.log(out.color) 
+    console.log(out.color)
 
     // disconnect from the network
     this.close()
@@ -121,7 +121,7 @@ $ node color-client.js
 The client finds the service using the mesh network. In this simple
 case, the `color-service` is configured as a *base* node, which means
 that it listens on a pre-defined local UDP port. The client checks for
-base nodes on this port. 
+base nodes on this port.
 
 **Notice that the client did not need any infomation about the service
   location.**
@@ -269,7 +269,7 @@ content has changed, and the content must be regenerated for the nect
 seneca.use('mesh', {
   listen: [
     {pin: 'get:content'}, // model:consume; the default
-    {pin: 'clear:cache', model:'observe'} 
+    {pin: 'clear:cache', model:'observe'}
   ]
 })
 ```
@@ -286,7 +286,7 @@ seneca.use('redis-transport')
 seneca.use('mesh', {
   listen: [
     {pin: 'get:content'}, // model:consume; the default
-    {pin: 'clear:cache', model:'observe', type:'redis'} 
+    {pin: 'clear:cache', model:'observe', type:'redis'}
   ]
 })
 ```
@@ -358,7 +358,7 @@ The options are:
     * _custom_: provide a function with signature `function (seneca,
       options, bases, next)` that returns an array of base nodes. See
       unit test [`single-custom`](/blob/master/test/mesh.test.js) for
-      an example. 
+      an example.
       * _active_: activate this discovery strategy. Default: true
 
       * _find_: the custom function
@@ -367,7 +367,7 @@ The options are:
       base nodes. Set to false to disable. Default is a set of
       sub-options - see code for details.
       * _active_: activate this discovery strategy. Default: true
-      
+
     * _multicast_: base nodes broadcast their existence via IP
     multicast. New services briefly listen to the broadcast to get the
     list of base nodes, and then drop out. This keeps broadcast
@@ -404,7 +404,7 @@ The [Seneca.js org][] encourages __open__ and __safe__ participation.
 
 - __[Code of Conduct][CoC]__
 
-If you feel you can help in any way, be it with documentation, examples, 
+If you feel you can help in any way, be it with documentation, examples,
 extra testing, or new features please get in touch.
 
 
@@ -419,13 +419,13 @@ Licensed under [MIT][].
 [Seneca.js]: https://www.npmjs.com/package/seneca
 [@senecajs]: http://twitter.com/senecajs
 [senecajs.org]: http://senecajs.org/
-[travis-badge]: https://travis-ci.org/rjrodger/seneca-mesh.svg
-[travis-url]: https://travis-ci.org/rjrodger/seneca-mesh
+[travis-badge]: https://travis-ci.org/senecajs/seneca-mesh.svg
+[travis-url]: https://travis-ci.org/senecajs/seneca-mesh
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
-[gitter-url]: https://gitter.im/rjrodger/seneca
-[github issue]: https://github.com/rjrodger/seneca-mesh/issues
-[Balance]: https://github.com/rjrodger/seneca-balance-client
-[Lead]: https://github.com/rjrodger/
+[gitter-url]: https://gitter.im/senecajs/seneca
+[github issue]: https://github.com/senecajs/seneca-mesh/issues
+[Balance]: https://github.com/senecajs/seneca-balance-client
+[Lead]: https://github.com/senecajs/
 [Sponsor]: http://nearform.com
 [CoC]: http://senecajs.org/contribute/details/code-of-conduct.html
 [SWIM gossip algorithm]: https://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf

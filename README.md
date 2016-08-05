@@ -275,7 +275,7 @@ seneca.use('mesh', {
 ```
 
 Seneca-mesh uses the
-[HTTP transport](github.com/senecajs/seneca-transport) by default. To
+[HTTP transport](https://github.com/senecajs/seneca-transport) by default. To
 use other transports, you can add additional options to each entry of the listen
 array. These options are passed to the transport system as if you have
 called `seneca.listen` directly:

@@ -1,6 +1,16 @@
 sudo: required
 dist: trusty
 language: node_js
+
 node_js:
   - "6"
+  - "5"
   - "4"
+
+env:
+  - SENECA_VER=@1.x.x
+  - SENECA_VER=@2.x.x
+
+before_script:
+  - npm uninstall seneca
+  - npm install seneca$SENECA_VER

@@ -250,18 +250,18 @@ seneca.use('mesh', {
 })
 ```
 
-Each entry in the _listen_ array specifies the listening modesl for a
+Each entry in the _listen_ array specifies the listening models for a
 given pattern. In particular, you can specify that the listening model:
 
   * _consume_: assume the message is from a work queue; consume the message, and generate a reply. This is the default.
-  * _observe_: assume the message is publisjed to multiple services; do not generate a reply
+  * _observe_: assume the message is published to multiple services; do not generate a reply
 
 As an example, consider a microservice that generates HTML
 content. The `get:content` message expects a reply containing the HTML
 content, and is intended for just one instance of the service, to
 avoid redundant work. The `clear:cache` message is published to all
 instances of the service to indicate that underlying data for the HTML
-content has changed, and the content must be regenerated for the nect
+content has changed, and the content must be regenerated for the next
 `get:content` message. Define the mesh patterns as follows:
 
 
@@ -326,7 +326,7 @@ The alias `m` can be used as a shortcut.
 
 ## Options
 
-The _seneca-mesh_ plugins accepts the following set of options. Specify these when loading the plugin:
+The _seneca-mesh_ plugin accepts the following set of options. Specify these when loading the plugin:
 
 ```js
 require('seneca')
@@ -339,8 +339,8 @@ The options are:
 
   * _isbase_: Make this node a base node. Default: false.
 
-  * _bases_: An array of pre-defined base nodes. Specify a strings in
-             the format: IP:PORT. Default: [].
+  * _bases_: An array of pre-defined base nodes. Specify strings in
+             the format: 'IP:PORT'. Default: [].
 
   * _pin_: the action pattern that this service will respond to. Default: null
 

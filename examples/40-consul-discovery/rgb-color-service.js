@@ -1,6 +1,6 @@
 var Seneca = require('seneca')
 
-Seneca({tag:'rgb'})
+Seneca({tag: 'rgb'})
   .use('consul-registry', {
     host: '127.0.0.1'
   })
@@ -15,7 +15,7 @@ Seneca({tag:'rgb'})
   })
   .ready(function () {
     var seneca = this
-    console.log('rgb',seneca.id)
+    console.log('rgb', seneca.id)
   })
 
 

@@ -6,12 +6,16 @@
   "license": "MIT",
   "author": "Richard Rodger (http://richardrodger.com)",
   "contributors": [
-    "Richard Rodger (http://richardrodger.com)"
+    "Richard Rodger (http://richardrodger.com)",
+    "Emer Rutherford (https://github.com/eeswr)",
+    "jaamison (https://github.com/jaamison)",
+    "Dean McDonnell (https://github.com/mcdonnelldean)",
+    "Shane Lacey (https://github.com/shanel262)"
   ],
   "scripts": {
-    "test": "lab test/*.test.js -r console -t 70 -I Reflect -v",
-    "annotate": "docco mesh.js -o doc",
-    "lint": "lab -dL"
+    "test": "lab test/*.test.js -r console -L -t 70 -I Reflect -v",
+    "annotate": "docco mesh.js -o docs/annotated",
+    "lint": "lab *.js -dL"
   },
   "repository": {
     "type": "git",

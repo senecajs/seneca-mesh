@@ -4,9 +4,8 @@ Seneca({log: 'test'})
 
   // provide an action for the format:hex pattern
   .add('format:hex', function (msg, done) {
-
     // red is the only color supported!
-    var color = 'red' === msg.color ? '#FF0000' : '#FFFFFF' 
+    var color = 'red' === msg.color ? '#FF0000' : '#FFFFFF'
 
     done(null, {
       color: color

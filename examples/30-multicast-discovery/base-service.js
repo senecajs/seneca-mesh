@@ -1,6 +1,6 @@
 var Seneca = require('seneca')
 
-Seneca({tag:'base'})
+Seneca({tag: 'base'})
   .use('../..', {
     port: 39001,
     isbase: true
@@ -8,6 +8,5 @@ Seneca({tag:'base'})
   .ready(function () {
     console.log('base', this.id)
   })
-
 
 

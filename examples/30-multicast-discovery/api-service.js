@@ -1,8 +1,8 @@
 var Seneca = require('seneca')
 
-var Hapi   = require('hapi')
+var Hapi = require('hapi')
 
-Seneca({tag:'api'})
+Seneca({tag: 'api'})
   .use('../..')
   .ready(function () {
     var seneca = this
@@ -12,26 +12,25 @@ Seneca({tag:'api'})
       port: 8000
     })
 
-    server.route({ 
-      method: 'GET', 
-      path: '/api/color/{format}', 
-      handler: function( req, reply ){
+    server.route({
+      method: 'GET',
+      path: '/api/color/{format}',
+      handler: function (req, reply) {
         seneca.act(
           {
             role: 'color',
             format: req.params.format,
-            color: req.query.color,
-            },
-          function(err,out) {
-            reply(err||out)
+            color: req.query.color
+          },
+          function (err, out) {
+            reply(err || out)
           }
-        )}
+        ) }
     })
 
-    server.start( function () {
-      console.log('api',server.info.host,server.info.port)
+    server.start(function () {
+      console.log('api', server.info.host, server.info.port)
     })
   })
-
 
 

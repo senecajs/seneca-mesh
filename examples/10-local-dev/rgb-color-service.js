@@ -1,6 +1,6 @@
 var Seneca = require('seneca')
 
-Seneca({tag:'rgb'})
+Seneca({tag: 'rgb'})
   .use('../logic/rgb')
   .listen({
     pin: 'role:color,format:rgb',
@@ -8,7 +8,7 @@ Seneca({tag:'rgb'})
   })
   .ready(function () {
     var seneca = this
-    console.log('rgb',seneca.id)
+    console.log('rgb', seneca.id)
   })
 
 

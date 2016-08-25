@@ -1,7 +1,7 @@
 {
   "name": "seneca-mesh",
   "version": "0.8.0",
-  "description": "Seneca mesh transport.",
+  "description": "Mesh your Seneca.js microservices together - no more service discovery!",
   "main": "mesh.js",
   "license": "MIT",
   "author": "Richard Rodger (http://richardrodger.com)",
@@ -13,7 +13,7 @@
     "Shane Lacey (https://github.com/shanel262)"
   ],
   "scripts": {
-    "test": "lab test/*.test.js -r console -L -t 70 -I Reflect -v",
+    "test": "lab test/*.test.js -r console -L -t 70  -v",
     "annotate": "docco mesh.js -o docs/annotated",
     "lint": "lab *.js -dL"
   },
@@ -30,12 +30,12 @@
     "client"
   ],
   "engines": {
-    "node": ">=0.12"
+    "node": ">=4.0.0"
   },
   "dependencies": {
     "ip": "1.1.3",
     "jsonic": "0.2.2",
-    "lodash": "4.14.2",
+    "lodash": "4.15.0",
     "nid": "0.3.2",
     "node-discover": "0.6.0",
     "optioner": "0.8.0",
@@ -47,8 +47,9 @@
     "color": "0.11.3",
     "docco": "0.7.x",
     "eslint-config-seneca": "3.x.x",
+    "eslint-plugin-hapi": "4.x.x",
     "eslint-plugin-standard": "2.x.x",
-    "hapi": "13.5.0",
+    "hapi": "14.2.0",
     "lab": "11.0.x",
     "pre-commit": "1.1.3",
     "seneca": "plugin",
@@ -60,7 +61,7 @@
     "LICENSE",
     "mesh.js"
   ],
-  "pre-commit": [ 
+  "pre-commit": [
     "test"
   ]
 }

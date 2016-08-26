@@ -33,6 +33,10 @@ If you are new to Seneca in general, please take a look at
 help get you up and running quickly.
 
 
+### Seneca compatibility
+
+Supports Seneca versions **1.x** - **3.x**
+
 ## Install
 To install, use npm
 
@@ -310,7 +314,7 @@ require('seneca')({
   .repl({
     port: 10001,
     alias: {
-      m: 'role:mesh,get:members'      
+      m: 'role:mesh,get:members'
     }
   })
 ```

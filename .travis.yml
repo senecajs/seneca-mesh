@@ -13,3 +13,6 @@ env:
 before_script:
   - npm uninstall seneca
   - npm install seneca$SENECA_VER
+
+after_script:
+  - npm run coveralls

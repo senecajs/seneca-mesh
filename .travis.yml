@@ -9,7 +9,8 @@ node_js:
 env:
   - SENECA_VER=@1.x.x
   - SENECA_VER=@2.x.x
-
+  - SENECA_VER=@3.x.x
+  
 before_script:
   - npm uninstall seneca
   - npm install seneca$SENECA_VER

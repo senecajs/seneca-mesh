@@ -53,7 +53,7 @@
     "eslint-config-seneca": "3.x.x",
     "eslint-plugin-hapi": "4.x.x",
     "eslint-plugin-standard": "2.x.x",
-    "hapi": "14.2.0",
+    "hapi": "15.0.2",
     "lab": "11.0.x",
     "pre-commit": "1.1.x",
     "seneca": "plugin",

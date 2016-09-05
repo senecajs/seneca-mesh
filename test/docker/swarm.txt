@@ -1,0 +1,5 @@
+
+docker service create --network n3 --replicas 1 --name base -e HOST=@eth0 -e REGISTRY='{"host":"192.168.59.10","port":8500}' mesh-base
+docker service create --network n3 --replicas 1 --name foo -e HOST=@eth0 -e REGISTRY='{"host":"192.168.59.10","port":8500}' mesh-foo
+docker service create --network n3 --replicas 1 --name bar -e HOST=@eth0 -e REGISTRY='{"host":"192.168.59.10","port":8500}' mesh-bar
+docker service create --network n3 --replicas 1 --name api -p 8080:8080 -e HOST=@eth2 -e REGISTRY='{"host":"192.168.59.10","port":8500}' mesh-api

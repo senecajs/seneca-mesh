@@ -1,0 +1,20 @@
+
+ubuntu/images/ebs/ubuntu-wily-15.10-amd64-server-20160715 (ami-c35dd0d4)
+
+sudo apt-get update
+sudo apt-get install -y build-essential emacs unzip
+
+curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+node -e "require('http').createServer(function(q,r){r.end(''+Date.now())}).listen(8080)"
+
+curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
+unzip awscli-bundle.zip
+sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+
+# list instance private ips
+aws ec2 describe-instances --filters "Name=tag:app,Values=seneca-mesh-t01" | grep 'PrivateIpAddress":' | sed 's/[ ",]//g' | cut -d':' -f 2 | uniq | paste -s -d","
+
+
+

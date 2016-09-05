@@ -15,4 +15,7 @@ npm-debug.log
 node_modules
 *~
 .DS_Store
+docs/annotated
+docs/coverage.html
 
+test/docker

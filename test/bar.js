@@ -1,18 +1,19 @@
 // To run:
-// $ node base.js
+// $ node service-foo.js
 
 var HOST = process.env.HOST || process.argv[2]
 var BASES = (process.env.BASES || process.argv[3] || '').split(',')
-var PORT = process.env.PORT
 var BROADCAST = process.env.BROADCAST
 var REGISTRY = JSON.parse(process.env.REGISTRY || '{"active":false}')
 
-require('seneca')({tag: 'b0'})
+require('seneca')({tag: 'bar'})
+  .add('bar:1', function (msg, done) {
+    done(null, {y: 1, v: 100 + msg.v})
+  })
   .use('consul-registry', REGISTRY || {})
   .use('..', {
-    isbase: true,
+    pin: 'bar:1',
     host: HOST,
-    port: PORT,
     bases: BASES,
     discover: {
       multicast: {
@@ -26,3 +27,10 @@ require('seneca')({tag: 'b0'})
     }
   })
 
+  .ready(function () {
+    var seneca = this
+
+    setInterval(function () {
+      seneca.act('foo:1,v:1,default$:{}', console.log)
+    }, 3000)
+  })

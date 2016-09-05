@@ -261,11 +261,11 @@ function mesh (options) {
 
             var config = meta.config || {}
 
-      		var pins = config.pins || config.pin || []
+            var pins = config.pins || config.pin || []
             pins = _.isArray(pins) ? pins : [pins]
-            var client_config = _.omit( config, ['pins', 'pin'] )
+            var client_config = _.omit(config, ['pins', 'pin'])
 
-            _.each(pins, function(pin) {
+            _.each(pins, function (pin) {
               var pin_id = instance.util.pattern(pin.pin || pin)
               var has_balance_client = !!balance_map[pin_id]
               var target_map = (balance_map[pin_id] = balance_map[pin_id] || {})
@@ -275,10 +275,10 @@ function mesh (options) {
                 model: pin.model || client_config.model
               })
 
-              var id = instance.util.pattern(pin_config)+'~'+meta.identifier$
+              var id = instance.util.pattern(pin_config) + '~' + meta.identifier$
 
               // this is a duplicate, so ignore
-              if(target_map[id]) {
+              if(target_map[id]){
                 return
               }
 
@@ -288,21 +288,21 @@ function mesh (options) {
               var actmeta = instance.find(pin_id)
               var ignore_client = !!(actmeta && !actmeta.client)
 
-              if(ignore_client) {
+              if(ignore_client){
                 return
               }
 
 
               if(!has_balance_client) {
                 // no balancer for this pin, so add one
-                instance.root.client({type:'balance', pin:pin_id, model: pin_config.model})
+                instance.root.client({type: 'balance', pin: pin_id, model: pin_config.model})
               }
 
               target_map[id] = true
 
               instance.act(
                 'role:transport,type:balance,add:client',
-                {config:pin_config} )
+                {config: pin_config})
             })
           }
 

@@ -139,16 +139,16 @@ configuration, multicast, service registries, and custom
 approaches. Base nodes are **not** used for service discovery. They
 serve only as a convenient means for new nodes to join the network.
 
-The [examples](/blob/master/examples) folder contains code for this
+The [examples](/examples) folder contains code for this
 example, and other scenarios demonstrating more complex network
 configurations:
 
-  * [local-dev-mesh](/blob/master/examples/20-local-dev-mesh): local development, including a web service API.
-  * [multicast-discovery](/blob/master/examples/30-multicast-discovery): multicast allows base nodes to discover each other - zero configuration!
-  * [consul-discovery](/blob/master/examples/30-consul-discovery): base node discovery using a service registry, when multicast is not available.
+  * [local-dev-mesh](/examples/20-local-dev-mesh): local development, including a web service API.
+  * [multicast-discovery](/examples/30-multicast-discovery): multicast allows base nodes to discover each other - zero configuration!
+  * [consul-discovery](/examples/30-consul-discovery): base node discovery using a service registry, when multicast is not available.
 
 As a counterpoint to mesh-based configuration, the
-[local-dev](/blob/master/examples/10-local-dev) example reminds of the
+[local-dev](/examples/10-local-dev) example reminds of the
 burden of traditional service location.
 
 
@@ -162,7 +162,7 @@ Seneca-mesh has been tested under the following deployment configurations:
   * Docker swarm using an overlay network (not multicast not supported here by Docker)
   * Amazon Web Services on multiple instances (multicast not supported by Amazon)
 
-See the [test](/blob/master/test) and [test/docker](/blob/master/test/docker) folders for example code.
+See the [test](/test) and [test/docker](/test/docker) folders for example code.
 
 See also the [Full system](#Full systems) examples for deployment configurations.
 
@@ -361,7 +361,7 @@ The options are:
 
     * _custom_: provide a function with signature `function (seneca,
       options, bases, next)` that returns an array of base nodes. See
-      unit test [`single-custom`](/blob/master/test/mesh.test.js) for
+      unit test [`single-custom`](/test/mesh.test.js) for
       an example.
       * _active_: activate this discovery strategy. Default: true
 

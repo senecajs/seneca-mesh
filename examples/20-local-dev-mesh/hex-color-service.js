@@ -1,14 +1,22 @@
-var Seneca = require('seneca')
+var Seneca = require('seneca'),
+    Service = Seneca({tag: 'hex'});
 
-Seneca({tag: 'hex'})
-  .use('../logic/hex')
-  .use('../..', {
+Service.use('../logic/hex');
+
+Service.use('../..', {
     pin: 'role:color,format:hex',
     bases: ['127.0.0.1']
-  })
-  .ready(function () {
-    var seneca = this
-    console.log('hex', seneca.id)
-  })
+});
+
+Service.ready(function (error) {
+    if (error) {
+        console.error(error);
+        this.close();
+        process.exit(1);
+    }
+
+    var seneca = this;
+    console.log('hex', seneca.id);
+});
 
 

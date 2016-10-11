@@ -19,3 +19,5 @@ docs/annotated
 docs/coverage.html
 
 test/docker
+
+.idea

@@ -1,43 +1,51 @@
-var Seneca = require('seneca')
+var Seneca = require('seneca'),
+    Hapi = require('hapi'),
+    Service = Seneca({tag: 'api'});
 
-var Hapi = require('hapi')
-
-Seneca({tag: 'api'})
-  .client({
+Service.client({
     pin: 'role:color,format:hex',
     port: 9001
-  })
-  .client({
+});
+
+Service.client({
     pin: 'role:color,format:rgb',
     port: 9002
-  })
-  .ready(function () {
-    var seneca = this
-    var server = new Hapi.Server()
+});
+
+Service.ready(function (error) {
+    if (error) {
+        this.close();
+        return process.exit(1);
+    }
+
+    var seneca = this,
+        server = new Hapi.Server();
 
     server.connection({
-      port: 8000
-    })
+        port: 8000
+    });
 
     server.route({
-      method: 'GET',
-      path: '/api/color/{format}',
-      handler: function (req, reply) {
-        seneca.act(
-          {
-            role: 'color',
-            format: req.params.format,
-            color: req.query.color
-          },
-          function (err, out) {
-            reply(err || out)
-          }
-        ) }
-    })
+        method: 'GET',
+        path: '/api/color/{format}',
+        handler: function (req, reply) {
+            seneca.act({
+                role: 'color',
+                format: req.params.format,
+                color: req.query.color
+            }, function (err, out) {
+                reply(err || out).code(err ? 500 : 200);
+            });
+        }
+    });
 
-    server.start(function () {
-      console.log('api', server.info.host, server.info.port)
-    })
-  })
+    server.start(function (error) {
+        if (error) {
+            console.error(error);
+            Service.close();
+            process.exit(1);
+        }
 
-
+        console.log('api', server.info.host, server.info.port);
+    });
+});

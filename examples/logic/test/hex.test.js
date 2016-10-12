@@ -17,21 +17,27 @@ describe('#hex', function () {
     si
       .use('../hex')
       .act('role:color, format:hex, color:red', function (err, out) {
-        if (err) { done(err) }
+        if (err) {
+          done(err)
+        }
         Assert.equal('hex', out.format)
         Assert.equal('#FF0000', out.color)
         next()
       })
 
       .act('role:color, format:hex, color:green', function (err, out) {
-        if (err) { done(err) }
+        if (err) {
+          done(err)
+        }
         Assert.equal('hex', out.format)
         Assert.equal('#008000', out.color)
         next()
       })
 
       .act('role:color, format:hex, color:blue', function (err, out) {
-        if (err) { done(err) }
+        if (err) {
+          done(err)
+        }
         Assert.equal('hex', out.format)
         Assert.equal('#0000FF', out.color)
         next()

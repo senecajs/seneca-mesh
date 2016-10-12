@@ -44,7 +44,7 @@ To install, use npm
 npm install seneca-balance-client
 npm install seneca-mesh
 ```
-The _seneca-mesh_ plugin depends on the [seneca-balance-client](Balance) plugin.
+The _seneca-mesh_ plugin depends on the [seneca-balance-client](https://github.com/senecajs/seneca-balance-client) plugin.
 
 And in your code:
 
@@ -60,30 +60,26 @@ hex values.
 
 ```js
 // color-service.js
-var Seneca = require('seneca')
+var Seneca = require('seneca'),
+    Service = Seneca({log: 'test'});
 
-Seneca({log: 'test'})
-
-  // provide an action for the format:hex pattern
-  .add('format:hex', function (msg, done) {
-
+// provide an action for the format:hex pattern
+Service.add('format:hex', function (msg, done) {
     // red is the only color supported!
-    var color = 'red' === msg.color ? '#FF0000' : '#FFFFFF'
+    var color = 'red' === msg.color ? '#FF0000' : '#FFFFFF';
 
     done(null, {
-      color: color
-    })
-  })
+        color: color
+    });
+});
 
-  // load the mesh plugin
-  .use('mesh', {
-
+// load the mesh plugin
+Service.use('../..', {
     // this is a base node
     isbase: true,
-
     // this service will respond to the format:hex pattern
     pin: 'format:hex'
-  })
+});
 ```
 
 Run the service (and leave it running) using:
@@ -97,23 +93,34 @@ performs an action, and then leaves.
 
 ```js
 // color-client.js
-var Seneca = require('seneca')
+var Seneca = require('seneca'),
+    Service = Seneca({log: 'test'});
 
-Seneca({log: 'test'})
+// load the mesh plugin
+Service.use('../..');
 
-  // load the mesh plugin
-  .use('mesh')
+// When mesh is ready send an act
+Service.ready(function (error) {
+    if (error) {
+        console.error(error);
+        this.close();
+    }
 
-  // send a message out into the network
-  // the network will know where to send format:hex messages
-  .act({format: 'hex', color: 'red'}, function (err, out) {
+    // the network will know where to send format:hex messages
+    // send a message out into the network
+    this.act({format: 'hex', color: 'red'}, function (err, out) {
+        if (err) {
+            console.error(err)
+        } else {
+            // prints #FF0000
+            console.log(out.color);
+        }
 
-    // prints #FF0000
-    console.log(out.color)
-
-    // disconnect from the network
-    this.close()
-  })
+        // disconnect from the network
+        this.close();
+        process.exit(err ? 1 : 0);
+    })
+});
 ```
 
 Run the client in a separate terminal using:
@@ -139,16 +146,16 @@ configuration, multicast, service registries, and custom
 approaches. Base nodes are **not** used for service discovery. They
 serve only as a convenient means for new nodes to join the network.
 
-The [examples](/blob/master/examples) folder contains code for this
+The [examples](https://github.com/senecajs/seneca-mesh/tree/master/examples) folder contains code for this
 example, and other scenarios demonstrating more complex network
 configurations:
 
-  * [local-dev-mesh](/blob/master/examples/20-local-dev-mesh): local development, including a web service API.
-  * [multicast-discovery](/blob/master/examples/30-multicast-discovery): multicast allows base nodes to discover each other - zero configuration!
-  * [consul-discovery](/blob/master/examples/30-consul-discovery): base node discovery using a service registry, when multicast is not available.
+  * [local-dev-mesh](https://github.com/senecajs/seneca-mesh/tree/master/examples/20-local-dev-mesh): local development, including a web service API.
+  * [multicast-discovery](https://github.com/senecajs/seneca-mesh/tree/master/examples/30-multicast-discovery): multicast allows base nodes to discover each other - zero configuration!
+  * [consul-discovery](https://github.com/senecajs/seneca-mesh/tree/master/examples/40-consul-discovery): base node discovery using a service registry, when multicast is not available.
 
 As a counterpoint to mesh-based configuration, the
-[local-dev](/blob/master/examples/10-local-dev) example reminds of the
+[local-dev](https://github.com/senecajs/seneca-mesh/tree/master/examples/10-local-dev) example reminds of the
 burden of traditional service location.
 
 
@@ -162,7 +169,7 @@ Seneca-mesh has been tested under the following deployment configurations:
   * Docker swarm using an overlay network (not multicast not supported here by Docker)
   * Amazon Web Services on multiple instances (multicast not supported by Amazon)
 
-See the [test](/blob/master/test) and [test/docker](/blob/master/test/docker) folders for example code.
+See the [test](https://github.com/senecajs/seneca-mesh/tree/master/test) and [test/docker](https://github.com/senecajs/seneca-mesh/tree/master/test/docker) folders for example code.
 
 See also the [Full system](#Full systems) examples for deployment configurations.
 
@@ -361,7 +368,7 @@ The options are:
 
     * _custom_: provide a function with signature `function (seneca,
       options, bases, next)` that returns an array of base nodes. See
-      unit test [`single-custom`](/blob/master/test/mesh.test.js) for
+      unit test [`single-custom`](https://github.com/senecajs/seneca-mesh/blob/master/test/mesh.test.js) for
       an example.
       * _active_: activate this discovery strategy. Default: true
 

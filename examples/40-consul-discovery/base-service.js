@@ -1,20 +1,33 @@
 var Seneca = require('seneca')
+var Service = Seneca({
+  tag: 'base',
+  log: 'info',
+  debug: {
+    undead: false,
+    short_logs: false
+  }
+})
 
-Seneca({tag: 'base'})
-  .use('consul-registry', {
-    host: '127.0.0.1'
-  })
-  .use('../..', {
-    isbase: true,
-    port: 39002,
-    discover: {
-      multicast: {
-        active: false
-      }
+Service.use('consul-registry', {
+  host: '127.0.0.1'
+})
+
+Service.use('../..', {
+  isbase: true,
+  port: 39002,
+  discover: {
+    multicast: {
+      active: false
     }
-  })
-  .ready(function () {
-    console.log('base', this.id)
-  })
+  }
+})
 
+Service.ready(function (error) {
+  if (error) {
+    console.error(error)
+    this.close()
+    process.exit(1)
+  }
 
+  console.log('base', this.id)
+})

@@ -1,16 +1,26 @@
 var Seneca = require('seneca')
+var Service = Seneca({tag: 'client', log: 'silent'})
 
-Seneca({tag: 'client', log: 'silent'})
-  .use('../..')
-  .act(
-  {
-    role: 'color',
-    format: process.argv[2] || 'hex',
-    color: process.argv[3] || 'red'
-  },
+Service.use('../..')
+
+Service.ready(function (error) {
+  if (error) return console.error(error)
+
+  Service.act(
+    {
+      role: 'color',
+      format: process.argv[2] || 'hex',
+      color: process.argv[3] || 'red'
+    },
     function (err, out) {
-      console.log(err && err.message || out.color)
-      this.close()
+      if (err) {
+        console.error(err)
+      }
+      else {
+        console.log(out)
+      }
+
+      Service.close()
+      process.exit(err ? 1 : 0)
     })
-
-
+})

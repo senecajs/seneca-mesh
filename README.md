@@ -62,17 +62,17 @@ hex values.
 // color-service.js
 var Seneca = require('seneca')
 
-Seneca({log: 'test'})
-
+Seneca()
+  // Uncomment to get detailed logs
+  // .test('print')
+  
   // provide an action for the format:hex pattern
-  .add('format:hex', function (msg, done) {
+  .add('format:hex', function (msg, reply) {
 
     // red is the only color supported!
     var color = 'red' === msg.color ? '#FF0000' : '#FFFFFF'
 
-    done(null, {
-      color: color
-    })
+    reply({color: color})
   })
 
   // load the mesh plugin
@@ -110,9 +110,6 @@ Seneca({log: 'test'})
 
     // prints #FF0000
     console.log(out.color)
-
-    // disconnect from the network
-    this.close()
   })
 ```
 
@@ -145,10 +142,10 @@ configurations:
 
   * [local-dev-mesh](/examples/20-local-dev-mesh): local development, including a web service API.
   * [multicast-discovery](/examples/30-multicast-discovery): multicast allows base nodes to discover each other - zero configuration!
-  * [consul-discovery](/examples/30-consul-discovery): base node discovery using a service registry, when multicast is not available.
+  * [consul-discovery](/examples/40-consul-discovery): base node discovery using a service registry, when multicast is not available.
 
 As a counterpoint to mesh-based configuration, the
-[local-dev](/examples/10-local-dev) example reminds of the
+[local-dev](/examples/10-local-dev) example is a reminder of the
 burden of traditional service location.
 
 

@@ -94,7 +94,7 @@ describe('#mesh', function () {
   })
 
 
-  it('single', {parallel: false, timeout: 5555}, function (done) {
+  it('single-with-base', {parallel: false, timeout: 5555}, function (done) {
     var b0b, s0b
 
     b0b =

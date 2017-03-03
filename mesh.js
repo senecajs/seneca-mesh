@@ -51,7 +51,8 @@ var optioner = Optioner({
     },
 
     registry: {
-      active: true,
+      // Not active by default, need to explicitly turn it on.
+      active: false,
 
       // check registry periodically
       refresh_interval: 1111,
@@ -79,13 +80,12 @@ var optioner = Optioner({
   sneeze: null
 })
 
+
 function mesh (options) {
   var seneca = this
 
   optioner(options, function (err, options) {
     if (err) throw err
-
-    // console.log(options)
 
     var closed = false
 
@@ -121,33 +121,25 @@ function mesh (options) {
     var balance_client_opts = options.balance_client || {}
     seneca.use('balance-client$mesh~' + mid, balance_client_opts)
 
-    if (options.dumpnet) {
-      require('child_process')
-        .exec('ifconfig -a', function (error, stdout, stderr) {
-          if (error) {
-            console.error(error)
-          }
-          console.log(stdout)
-          console.log(stderr)
-        })
-    }
-
-
     seneca.add('init:mesh', init)
 
-    function init (msg, done) {
+
+    function init (msg, init_done) {
       find_bases(seneca, options, rif, function (found_bases) {
         // console.log('FOUND',found_bases)
 
         bases = found_bases
 
-        seneca.log.info({
+        seneca.log.debug({
           kind: 'mesh',
           host: options.host,
           port: options.port,
           bases: bases,
           options: options
         })
+
+        var listen_count = 0
+        var last_mesh_listen_err = null
 
         var sneeze_opts = options.sneeze || {}
 
@@ -182,21 +174,38 @@ function mesh (options) {
 
             listen_opts.model = listen_opts.model || 'consume'
 
-            seneca.root.listen(listen_opts)
+            listen_opts.ismesh = true
+
+            seneca.listen(listen_opts)
           })
         }
 
 
-        return done()
-
-
         function transport_listen (msg, done) {
-          this.prior(msg, function (err, out) {
-            if (err) return done(err)
+          var ismesh = msg.config && msg.config.ismesh
 
-            join(this, out, function () {
+          // count off the mesh auto listens
+          listen_count += ismesh ? 1 : 0
+
+          this.prior(msg, function (err, out) {
+            if (err) {
+              last_mesh_listen_err = ismesh ? err : last_mesh_listen_err
+              return done(err)
+            }
+
+            if (ismesh) {
+              join(this, out, function () {
+                done()
+
+                // only finish mesh plugin init if all auto listens attempted
+                if (listen.length === listen_count) {
+                  init_done(last_mesh_listen_err)
+                }
+              })
+            }
+            else {
               done()
-            })
+            }
           })
         }
 
@@ -256,6 +265,7 @@ function mesh (options) {
 
           sneeze.join(meta)
 
+
           function add_client (meta) {
             if (closed) return
 
@@ -295,7 +305,7 @@ function mesh (options) {
 
               if (!has_balance_client) {
                 // no balancer for this pin, so add one
-                instance.root.client({type: 'balance', pin: pin, model: config.model})
+                instance.client({type: 'balance', pin: pin, model: config.model})
               }
 
               target_map[id] = true
@@ -366,13 +376,12 @@ function resolve_interface (spec, rif) {
 function find_bases (seneca, options, rif, done) {
   var bases = []
 
-  // options.discover = options.discover || {}
   addbase_funcmap.custom = function (seneca, options, bases, next) {
     options.discover.custom.find(seneca, options, bases, function (add, stop) {
       add = add || []
-      // console.log('FB custom',add)
       next(add, null == stop ? 0 < add.length : !!stop)
-    }) }
+    })
+  }
 
   // order is significant
   var addbases = [
@@ -389,13 +398,11 @@ function find_bases (seneca, options, rif, done) {
   next()
 
   function next (add, stop) {
-    // console.log(addbase,add,stop)
     bases = bases.concat(add || [])
     if (stop && options.discover.stop) abI = addbases.length
 
     do {
       ++abI
-      // console.log(addbases[abI],options.discover[addbases[abI]])
     }
     while (abI < addbases.length && !options.discover[addbases[abI]].active)
 
@@ -427,7 +434,6 @@ var addbase_funcmap = {
       return base && 0 < base.length
     })
 
-    // console.log('FB defined',add)
     next(add, 0 < add.length)
   },
 
@@ -443,7 +449,6 @@ var addbase_funcmap = {
       add.push(DEFAULT_HOST + ':' + DEFAULT_PORT)
     }
 
-    // console.log('FB guess',add)
     next(add)
   },
 
@@ -486,7 +491,6 @@ var addbase_funcmap = {
 
         clearInterval(fi)
 
-        // console.log('FB multicast',add)
         next(add, 0 < add.length)
       }
 
@@ -523,7 +527,6 @@ var addbase_funcmap = {
 
           if (first) {
             first = false
-            // console.log('FB registry',add)
             next(add, 0 < add.length)
           }
 
@@ -558,14 +561,16 @@ var addbase_funcmap = {
 function default_make_entry (member) {
   var entry = member
 
-  if (member.tag$.match(/^seneca~/)) {
+  var meta = member.meta
+
+  if (meta.tag$ && meta.tag$.match(/^seneca~/)) {
     entry = {
-      pin: member.config.pin,
-      port: member.config.port,
-      host: member.config.host,
-      type: member.config.type,
-      model: member.config.model,
-      instance: member.instance
+      pin: meta.config.pin,
+      port: meta.config.port,
+      host: meta.config.host,
+      type: meta.config.type,
+      model: meta.config.model,
+      instance: meta.instance
     }
   }
 

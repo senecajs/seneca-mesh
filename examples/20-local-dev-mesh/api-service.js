@@ -3,6 +3,7 @@ var Seneca = require('seneca')
 var Hapi = require('hapi')
 
 Seneca({tag: 'api'})
+  .test('print')
   .use('../..', {
     isbase: true
   })

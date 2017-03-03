@@ -1,6 +1,7 @@
 var Seneca = require('seneca')
 
 Seneca({tag: 'rgb'})
+  .test('print')
   .use('../logic/rgb')
   .use('../..', {
     pin: 'role:color,format:rgb',

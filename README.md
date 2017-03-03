@@ -333,7 +333,7 @@ The alias `m` can be used as a shortcut.
 The _seneca-mesh_ plugin accepts the following set of options. Specify these when loading the plugin:
 
 ```js
-require('seneca')
+require('seneca')()
     .use('mesh', {
       // options go here
     })

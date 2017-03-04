@@ -76,7 +76,7 @@ var optioner = Optioner({
     stop: true
   },
 
-  dumpnet: false,
+  monitor: false,
   sneeze: null
 })
 
@@ -148,6 +148,10 @@ function mesh (options) {
         sneeze_opts.port = options.port || void 0
         sneeze_opts.host = options.host || void 0
         sneeze_opts.identifier = seneca.id
+
+
+        sneeze_opts.monitor = sneeze_opts.monitor || 
+          { active: !!options.monitor } 
 
         sneeze_opts.tag = (void 0 !== sneeze_opts.tag ? sneeze_opts.tag
           : void 0 !== tag

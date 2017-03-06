@@ -3,11 +3,15 @@ var Seneca = require('seneca')
 var Hapi = require('hapi')
 
 Seneca({tag: 'api'})
+  .test('print')
   .use('consul-registry', {
     host: '127.0.0.1'
   })
   .use('../..', {
     discover: {
+      registry: {
+        active: true
+      },
       multicast: {
         active: false
       }

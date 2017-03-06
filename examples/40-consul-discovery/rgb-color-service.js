@@ -1,6 +1,7 @@
 var Seneca = require('seneca')
 
 Seneca({tag: 'rgb'})
+  .test('print')
   .use('consul-registry', {
     host: '127.0.0.1'
   })
@@ -8,6 +9,9 @@ Seneca({tag: 'rgb'})
   .use('../..', {
     pin: 'role:color,format:rgb',
     discover: {
+      registry: {
+        active: true
+      },
       multicast: {
         active: false
       }

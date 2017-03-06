@@ -1,6 +1,7 @@
 var Seneca = require('seneca')
 
 Seneca({tag: 'base'})
+  .test('print')
   .use('consul-registry', {
     host: '127.0.0.1'
   })
@@ -8,6 +9,9 @@ Seneca({tag: 'base'})
     isbase: true,
     port: 39002,
     discover: {
+      registry: {
+        active: true
+      },
       multicast: {
         active: false
       }

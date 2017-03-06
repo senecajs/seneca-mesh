@@ -3,6 +3,7 @@ var Seneca = require('seneca')
 var Hapi = require('hapi')
 
 Seneca({tag: 'api'})
+  .test('print')
   .use('../..')
   .ready(function () {
     var seneca = this
@@ -25,7 +26,8 @@ Seneca({tag: 'api'})
           function (err, out) {
             reply(err || out)
           }
-        ) }
+        )
+      }
     })
 
     server.start(function () {

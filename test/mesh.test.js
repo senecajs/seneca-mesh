@@ -1,51 +1,29 @@
 /*
   MIT License,
-  Copyright (c) 2015-2016, Richard Rodger and other contributors.
+  Copyright (c) 2015-2017, Richard Rodger and other contributors.
 */
 
 'use strict'
 
+
 var Assert = require('assert')
 
 var Lab = require('lab')
+var Code = require('code')
 var Seneca = require('seneca')
-
 var Rif = require('rif')
+
 
 var lab = exports.lab = Lab.script()
 var describe = lab.describe
 var it = lab.it
+var expect = Code.expect
+
 
 var Mesh = require('..')
 
-var netif = {
-  lo:
-   [ { address: '127.0.0.1',
-       netmask: '255.0.0.0',
-       family: 'IPv4',
-       mac: '00:00:00:00:00:00',
-       internal: true },
-     { address: '::1',
-       netmask: 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff',
-       family: 'IPv6',
-       mac: '00:00:00:00:00:00',
-       scopeid: 0,
-       internal: true } ],
-  eth0:
-   [ { address: '10.0.2.15',
-       netmask: '255.255.255.0',
-       family: 'IPv4',
-       mac: '08:00:27:1b:bc:e9',
-       internal: false },
-     { address: 'fe80::a00:27ff:fe1b:bce9',
-       netmask: 'ffff:ffff:ffff:ffff::',
-       family: 'IPv6',
-       mac: '08:00:27:1b:bc:e9',
-       scopeid: 2,
-       internal: false } ]
-}
+var intern = Mesh.intern
 
-var rif = Rif(netif)
 
 var test_discover = {
   stop: true,
@@ -54,35 +32,61 @@ var test_discover = {
   registry: {active: false}
 }
 
+
 describe('#mesh', function () {
-  it('util:resolve_bases', function (done) {
-    Assert.equal(
-      '',
-      '' + Mesh.resolve_bases())
+  it('intern.resolve_bases', function (done) {
+    var rif = make_rif()
 
     Assert.equal(
-      Mesh.DEFAULT_HOST + ':' + Mesh.DEFAULT_PORT + ',192.168.1.2:' + Mesh.DEFAULT_PORT,
-      '' + Mesh.resolve_bases([':' + Mesh.DEFAULT_PORT], {host: '192.168.1.2'}, rif))
+      '',
+      '' + intern.resolve_bases())
+
+    Assert.equal(Mesh.DEFAULT_HOST + ':' + Mesh.DEFAULT_PORT +
+                 ',192.168.1.2:' + Mesh.DEFAULT_PORT,
+                 '' + intern.resolve_bases([':' + Mesh.DEFAULT_PORT],
+                                         {host: '192.168.1.2'}, rif))
 
     Assert.equal(
       'foo:' + Mesh.DEFAULT_PORT + ',' +
       'bar:' + Mesh.DEFAULT_PORT,
-      '' + Mesh.resolve_bases(['foo', 'bar'], null, rif))
+      '' + intern.resolve_bases(['foo', 'bar'], null, rif))
 
     Assert.equal(
       Mesh.DEFAULT_HOST + ':33333',
-      '' + Mesh.resolve_bases([':33333'], null, rif))
+      '' + intern.resolve_bases([':33333'], null, rif))
 
     Assert.equal(
       Mesh.DEFAULT_HOST + ':33333,' + 'zed:33333',
-      '' + Mesh.resolve_bases([':33333'], {host: 'zed'}, rif))
+      '' + intern.resolve_bases([':33333'], {host: 'zed'}, rif))
 
     Assert.equal(
       '127.0.0.1:' + Mesh.DEFAULT_PORT,
-      '' + Mesh.resolve_bases(['@lo'], null, rif))
+      '' + intern.resolve_bases(['@lo'], null, rif))
 
     done()
   })
+
+
+  it('intern.make_pin_config', function (done) {
+    var si = Seneca({log: 'silent'})
+
+    expect(intern.make_pin_config(
+      si, {identifier$: 'i0'}, {a: 1}, {pin: 'a:1', x: 1})).to.equal({
+        id: 'pin:a:1,x:1~i0',
+        pin: 'a:1',
+        x: 1
+      })
+
+    expect(intern.make_pin_config(
+      si, {identifier$: 'i0'}, 'a:1', {pins: [{a: 1}, 'b:1'], x: 1})).to.equal({
+        id: 'pin:a:1,x:1~i0',
+        pin: 'a:1',
+        x: 1
+      })
+
+    done()
+  })
+
 
   it('base', {timeout: 5555, parallel: false}, function (done) {
     Seneca({tag: 'b0a', log: 'test', debug: {short_logs: true}})
@@ -528,3 +532,33 @@ describe('#mesh', function () {
 })
 
 
+function make_rif () {
+  var netif = {
+    lo:
+    [ { address: '127.0.0.1',
+        netmask: '255.0.0.0',
+        family: 'IPv4',
+        mac: '00:00:00:00:00:00',
+        internal: true },
+      { address: '::1',
+        netmask: 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff',
+        family: 'IPv6',
+        mac: '00:00:00:00:00:00',
+        scopeid: 0,
+        internal: true } ],
+    eth0:
+    [ { address: '10.0.2.15',
+        netmask: '255.255.255.0',
+        family: 'IPv4',
+        mac: '08:00:27:1b:bc:e9',
+        internal: false },
+      { address: 'fe80::a00:27ff:fe1b:bce9',
+        netmask: 'ffff:ffff:ffff:ffff::',
+        family: 'IPv6',
+        mac: '08:00:27:1b:bc:e9',
+        scopeid: 2,
+        internal: false } ]
+  }
+
+  return Rif(netif)
+}

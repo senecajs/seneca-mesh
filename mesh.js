@@ -16,10 +16,13 @@ var Optioner = require('optioner')
 var Joi = Optioner.Joi
 
 module.exports = mesh
-module.exports.resolve_bases = resolve_bases
 
 var DEFAULT_HOST = module.exports.DEFAULT_HOST = '127.0.0.1'
 var DEFAULT_PORT = module.exports.DEFAULT_PORT = 39999
+
+
+var intern = module.exports.intern = make_intern()
+
 
 var optioner = Optioner({
   pin: Joi.alternatives().try(Joi.string(), Joi.object()),
@@ -32,7 +35,7 @@ var optioner = Optioner({
   listen: Joi.array(),
 
   auto: true,
-  make_entry: default_make_entry,
+  make_entry: intern.default_make_entry,
 
   discover: {
     defined: {
@@ -113,7 +116,7 @@ function mesh (options) {
       pin = pin || 'role:mesh,base:true'
     }
 
-    options.host = resolve_interface(options.host, rif)
+    options.host = intern.resolve_interface(options.host, rif)
     var tag = options.tag
 
     var listen = options.listen || [{pin: pin, model: options.model || 'consume'}]
@@ -125,7 +128,7 @@ function mesh (options) {
 
 
     function init (msg, init_done) {
-      find_bases(seneca, options, rif, function (found_bases) {
+      intern.find_bases(seneca, options, rif, function (found_bases) {
         // console.log('FOUND',found_bases)
 
         bases = found_bases
@@ -150,8 +153,8 @@ function mesh (options) {
         sneeze_opts.identifier = seneca.id
 
 
-        sneeze_opts.monitor = sneeze_opts.monitor || 
-          { active: !!options.monitor } 
+        sneeze_opts.monitor = sneeze_opts.monitor ||
+          { active: !!options.monitor }
 
         sneeze_opts.tag = (void 0 !== sneeze_opts.tag ? sneeze_opts.tag
           : void 0 !== tag
@@ -254,7 +257,7 @@ function mesh (options) {
 
             _.each(sneeze.members(), function (member) {
               var m = options.make_entry(member)
-              members.push(void 0 === m ? default_make_entry(member) : m)
+              members.push(void 0 === m ? intern.default_make_entry(member) : m)
             })
 
             this.prior(msg, function (err, out) {
@@ -279,24 +282,16 @@ function mesh (options) {
             pins = _.isArray(pins) ? pins : [pins]
 
             _.each(pins, function (pin) {
-              var pin_id = instance.util.pattern(pin)
-              var has_balance_client = !!balance_map[pin_id]
-              var target_map = (balance_map[pin_id] = balance_map[pin_id] || {})
+              var pin_config = intern.make_pin_config(instance, meta, pin, config)
 
-              var pin_config = _.clone(config)
-              delete pin_config.pins
-              delete pin_config.pin
-
-              pin_config.pin = pin_id
-
-              var id = instance.util.pattern(pin_config) + '~' + meta.identifier$
+              var has_balance_client = !!balance_map[pin_config.pin]
+              var target_map =
+                    (balance_map[pin_config.pin] = balance_map[pin_config.pin] || {})
 
               // this is a duplicate, so ignore
-              if (target_map[id]) {
+              if (target_map[pin_config.id]) {
                 return
               }
-
-              pin_config.id = id
 
               // TODO: how to handle local override?
               var actmeta = instance.find(pin)
@@ -312,7 +307,7 @@ function mesh (options) {
                 instance.client({type: 'balance', pin: pin, model: config.model})
               }
 
-              target_map[id] = true
+              target_map[pin_config.id] = true
 
               instance.act(
                 'role:transport,type:balance,add:client',
@@ -330,21 +325,12 @@ function mesh (options) {
             pins = _.isArray(pins) ? pins : [pins]
 
             _.each(pins, function (pin) {
-              var pin_id = instance.util.pattern(pin)
+              var pin_config = intern.make_pin_config(instance, meta, pin, config)
 
-              var pin_config = _.clone(config)
-              delete pin_config.pins
-              delete pin_config.pin
-
-              pin_config.pin = pin_id
-
-              var id = instance.util.pattern(pin_config) + '~' + meta.identifier$
-              pin_config.id = id
-
-              var target_map = balance_map[pin_id]
+              var target_map = balance_map[pin_config.pin]
 
               if (target_map) {
-                delete target_map[id]
+                delete target_map[pin_config.id]
               }
 
               instance.act(
@@ -359,282 +345,292 @@ function mesh (options) {
 }
 
 
-function resolve_interface (spec, rif) {
-  var out = spec
+function make_intern () {
+  return {
 
-  spec = null == spec ? '' : spec
+    resolve_interface: function (spec, rif) {
+      var out = spec
 
-  if ('@' === spec[0]) {
-    if (1 === spec.length) {
-      out = '0.0.0.0'
-    }
-    else {
-      out = rif(spec.substring(1))
-    }
-  }
+      spec = null == spec ? '' : spec
 
-  return out
-}
-
-
-function find_bases (seneca, options, rif, done) {
-  var bases = []
-
-  addbase_funcmap.custom = function (seneca, options, bases, next) {
-    options.discover.custom.find(seneca, options, bases, function (add, stop) {
-      add = add || []
-      next(add, null == stop ? 0 < add.length : !!stop)
-    })
-  }
-
-  // order is significant
-  var addbases = [
-    'defined',
-    'custom',
-    'registry',
-    'multicast',
-    'guess'
-  ]
-
-  var abI = -1
-  var addbase
-
-  next()
-
-  function next (add, stop) {
-    bases = bases.concat(add || [])
-    if (stop && options.discover.stop) abI = addbases.length
-
-    do {
-      ++abI
-    }
-    while (abI < addbases.length && !options.discover[addbases[abI]].active)
-
-    // while (!truthy(options.discover[addbases[abI]])
-    // { ++abI }
-
-    addbase = addbases[abI]
-
-    if (null == addbase) {
-      bases = resolve_bases(
-        bases,
-        options,
-        rif
-      )
-
-      return done(bases)
-    }
-
-    addbase_funcmap[addbase](seneca, options, bases, next)
-  }
-}
-
-var addbase_funcmap = {
-  defined: function (seneca, options, bases, next) {
-    var add =
-          (options.sneeze || {}).bases || options.bases || options.remotes || []
-
-    add = add.filter(function (base) {
-      return base && 0 < base.length
-    })
-
-    next(add, 0 < add.length)
-  },
-
-  // order significant! depends on defined as uses bases.length
-  guess: function (seneca, options, bases, next) {
-    var add = []
-    var host = options.host
-
-    if (0 === bases.length) {
-      if (null != host && host !== DEFAULT_HOST) {
-        add.push(host + ':' + DEFAULT_PORT)
-      }
-      add.push(DEFAULT_HOST + ':' + DEFAULT_PORT)
-    }
-
-    next(add)
-  },
-
-  multicast: function (seneca, options, bases, next) {
-    var add = []
-    var opts = options.discover.multicast
-
-    // Determine broadcast address using subnetmask
-    if (_.isString(opts.address) && '/' === opts.address[0]) {
-      var netprefix = parseInt(opts.address.substring(1), 10)
-      opts.address = Ip.subnet(options.host, Ip.fromPrefixLen(netprefix)).broadcastAddress
-    }
-
-    var d = Discover({
-      broadcast: opts.address,
-      advertisement: {
-        seneca_mesh: true,
-        isbase: options.isbase,
-        host: options.host || DEFAULT_HOST,
-        port: options.port || DEFAULT_PORT
-      }
-    })
-
-    var findCount = 0
-    var fi = setInterval(function () {
-      var count = 0
-      d.eachNode(function (node) {
-        var nd = node.advertisement
-        if (nd.seneca_mesh) {
-          add.push(nd.host + ':' + nd.port)
-          count++
+      if ('@' === spec[0]) {
+        if (1 === spec.length) {
+          out = '0.0.0.0'
         }
-      })
+        else {
+          out = rif(spec.substring(1))
+        }
+      }
 
-      if (0 < count || opts.max_search < findCount) {
-        // only bases should keep broadcasting
-        if (!options.isbase) {
-          d.stop()
+      return out
+    },
+
+
+    find_bases: function (seneca, options, rif, done) {
+      var bases = []
+
+      intern.addbase_funcmap.custom = function (seneca, options, bases, next) {
+        options.discover.custom.find(seneca, options, bases, function (add, stop) {
+          add = add || []
+          next(add, null == stop ? 0 < add.length : !!stop)
+        })
+      }
+
+      // order is significant
+      var addbases = [
+        'defined',
+        'custom',
+        'registry',
+        'multicast',
+        'guess'
+      ]
+
+      var abI = -1
+      var addbase
+
+      next()
+
+      function next (add, stop) {
+        bases = bases.concat(add || [])
+        if (stop && options.discover.stop) abI = addbases.length
+
+        do {
+          ++abI
+        }
+        while (abI < addbases.length && !options.discover[addbases[abI]].active)
+
+        addbase = addbases[abI]
+
+        if (null == addbase) {
+          bases = intern.resolve_bases(
+            bases,
+            options,
+            rif
+          )
+
+          return done(bases)
         }
 
-        clearInterval(fi)
+        intern.addbase_funcmap[addbase](seneca, options, bases, next)
+      }
+    },
+
+
+    addbase_funcmap: {
+      defined: function (seneca, options, bases, next) {
+        var add =
+              (options.sneeze || {}).bases || options.bases || options.remotes || []
+
+        add = add.filter(function (base) {
+          return base && 0 < base.length
+        })
 
         next(add, 0 < add.length)
-      }
+      },
 
-      findCount++
-    }, opts.search_interval)
-  },
+      // order significant! depends on defined as uses bases.length
+      guess: function (seneca, options, bases, next) {
+        var add = []
+        var host = options.host
 
+        if (0 === bases.length) {
+          if (null != host && host !== DEFAULT_HOST) {
+            add.push(host + ':' + DEFAULT_PORT)
+          }
+          add.push(DEFAULT_HOST + ':' + DEFAULT_PORT)
+        }
 
-  registry: function (seneca, options, bases, next) {
-    var first = true
+        next(add)
+      },
 
-    var base_addr = (options.host || DEFAULT_HOST) + ':' +
-          (options.port || DEFAULT_PORT)
+      multicast: function (seneca, options, bases, next) {
+        var add = []
+        var opts = options.discover.multicast
 
-    if (options.isbase) {
-      var ri = options.discover.registry.refresh_interval
-      ri = ri + (ri * (Math.random() - 0.5))
-      setInterval(getset_bases, ri)
-    }
+        // Determine broadcast address using subnetmask
+        if (_.isString(opts.address) && '/' === opts.address[0]) {
+          var netprefix = parseInt(opts.address.substring(1), 10)
+          opts.address = Ip.subnet(options.host, Ip.fromPrefixLen(netprefix)).broadcastAddress
+        }
 
-    getset_bases()
+        var d = Discover({
+          broadcast: opts.address,
+          advertisement: {
+            seneca_mesh: true,
+            isbase: options.isbase,
+            host: options.host || DEFAULT_HOST,
+            port: options.port || DEFAULT_PORT
+          }
+        })
 
-    function getset_bases () {
-      seneca.act(
-        'role:registry,cmd:get,default$:{}',
-        {key: 'seneca-mesh/' + (options.tag || '-') + '/bases'},
-        function (err, out) {
-          if (err) return
-
-          var add = (out.value || '').split(',')
-          add = add.filter(function (base) {
-            return 0 < base.length
+        var findCount = 0
+        var fi = setInterval(function () {
+          var count = 0
+          d.eachNode(function (node) {
+            var nd = node.advertisement
+            if (nd.seneca_mesh) {
+              add.push(nd.host + ':' + nd.port)
+              count++
+            }
           })
 
-          if (first) {
-            first = false
+          if (0 < count || opts.max_search < findCount) {
+            // only bases should keep broadcasting
+            if (!options.isbase) {
+              d.stop()
+            }
+
+            clearInterval(fi)
+
             next(add, 0 < add.length)
           }
 
-          if (options.isbase) {
-            var prune_first = Math.random() <
-                  options.discover.registry.prune_first_probability
+          findCount++
+        }, opts.search_interval)
+      },
 
-            if (prune_first || -1 === add.indexOf(base_addr)) {
-              add.push(base_addr)
-              add = _.uniq(add)
 
-              if (prune_first && options.discover.registry.prune_bound < add.length) {
-                add.shift()
+      registry: function (seneca, options, bases, next) {
+        var first = true
+
+        var base_addr = (options.host || DEFAULT_HOST) + ':' +
+              (options.port || DEFAULT_PORT)
+
+        if (options.isbase) {
+          var ri = options.discover.registry.refresh_interval
+          ri = ri + (ri * (Math.random() - 0.5))
+          setInterval(getset_bases, ri)
+        }
+
+        getset_bases()
+
+        function getset_bases () {
+          seneca.act(
+            'role:registry,cmd:get,default$:{}',
+            {key: 'seneca-mesh/' + (options.tag || '-') + '/bases'},
+            function (err, out) {
+              if (err) return
+
+              var add = (out.value || '').split(',')
+              add = add.filter(function (base) {
+                return 0 < base.length
+              })
+
+              if (first) {
+                first = false
+                next(add, 0 < add.length)
               }
 
-              var val = add.join(',')
+              if (options.isbase) {
+                var prune_first = Math.random() <
+                      options.discover.registry.prune_first_probability
 
-              seneca.act(
-                'role:registry,cmd:set,default$:{}',
-                {
-                  key: 'seneca-mesh/' + (options.tag || '-') + '/bases',
-                  value: val
-                })
-            }
-          }
-        })
-    }
-  }
-}
+                if (prune_first || -1 === add.indexOf(base_addr)) {
+                  add.push(base_addr)
+                  add = _.uniq(add)
 
+                  if (prune_first && options.discover.registry.prune_bound < add.length) {
+                    add.shift()
+                  }
 
-function default_make_entry (member) {
-  var entry = member
+                  var val = add.join(',')
 
-  var meta = member.meta
-
-  if (meta.tag$ && meta.tag$.match(/^seneca~/)) {
-    entry = {
-      pin: meta.config.pin,
-      port: meta.config.port,
-      host: meta.config.host,
-      type: meta.config.type,
-      model: meta.config.model,
-      instance: meta.instance
-    }
-  }
-
-  return entry
-}
-
-
-function resolve_bases (orig_bases, options, rif) {
-  options = options || {}
-
-  var host = options.host
-
-  // remove empties
-  var bases = (orig_bases || []).filter(function (base) {
-    return base && 0 < base.length
-  })
-
-  var append = []
-
-  // first pass: defaults and interfacesx
-  bases = bases.map(function (base) {
-    // host:port -> host:port
-    // :port -> DEFAULT_HOST:port, host:port
-    // host -> host:DEFAULT_PORT
-    var parts = base.match(/^(.+):(\d+)$/)
-    if (parts) {
-      parts = parts.slice(1, 3)
-    }
-    else {
-      if (':' === base[0]) {
-        parts = [DEFAULT_HOST, base.substring(1)]
-        if (host) {
-          append.push(host + ':' + parts[1])
+                  seneca.act(
+                    'role:registry,cmd:set,default$:{}',
+                    {
+                      key: 'seneca-mesh/' + (options.tag || '-') + '/bases',
+                      value: val
+                    })
+                }
+              }
+            })
         }
       }
-      else {
-        parts = [base, DEFAULT_PORT]
+    },
+
+
+    default_make_entry: function (member) {
+      var entry = member
+
+      var meta = member.meta
+
+      if (meta.tag$ && meta.tag$.match(/^seneca~/)) {
+        entry = {
+          pin: meta.config.pin,
+          port: meta.config.port,
+          host: meta.config.host,
+          type: meta.config.type,
+          model: meta.config.model,
+          instance: meta.instance
+        }
       }
+
+      return entry
+    },
+
+
+    resolve_bases: function (orig_bases, options, rif) {
+      options = options || {}
+
+      var host = options.host
+
+      // remove empties
+      var bases = (orig_bases || []).filter(function (base) {
+        return base && 0 < base.length
+      })
+
+      var append = []
+
+      // first pass: defaults and interfacesx
+      bases = bases.map(function (base) {
+        // host:port -> host:port
+        // :port -> DEFAULT_HOST:port, host:port
+        // host -> host:DEFAULT_PORT
+        var parts = base.match(/^(.+):(\d+)$/)
+        if (parts) {
+          parts = parts.slice(1, 3)
+        }
+        else {
+          if (':' === base[0]) {
+            parts = [DEFAULT_HOST, base.substring(1)]
+            if (host) {
+              append.push(host + ':' + parts[1])
+            }
+          }
+          else {
+            parts = [base, DEFAULT_PORT]
+          }
+        }
+
+        if ('@' === (parts[0] && parts[0][0])) {
+          parts[0] = rif(parts[0].substring(1))
+        }
+
+        return parts.join(':')
+      })
+
+      bases = bases.concat(append)
+
+
+      // TODO second pass: ranges
+      // host:10-12 -> host:10, host:11, host:12
+      // a.b.c.10-12:port -> a.b.c.10:port, a.b.c.11:port, a.b.c.12:port
+
+      return bases
+    },
+
+
+    make_pin_config: function (instance, meta, pin, config) {
+      var pin_id = instance.util.pattern(pin)
+
+      var pin_config = _.clone(config)
+      delete pin_config.pins
+      delete pin_config.pin
+
+      pin_config.pin = pin_id
+      pin_config.id = instance.util.pattern(pin_config) + '~' + meta.identifier$
+
+      return pin_config
     }
-
-    if ('@' === (parts[0] && parts[0][0])) {
-      parts[0] = rif(parts[0].substring(1))
-    }
-
-    return parts.join(':')
-  })
-
-  bases = bases.concat(append)
-
-
-  // second pass: ranges
-  // host:10-12 -> host:10, host:11, host:12
-  // a.b.c.10-12:port -> a.b.c.10:port, a.b.c.11:port, a.b.c.12:port
-
-  return bases
+  }
 }
-
-
-/*
-function truthy (v) {
-  return 'false' === v ? false : !!v
-}
-*/

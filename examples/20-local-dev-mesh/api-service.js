@@ -28,7 +28,8 @@ Seneca({tag: 'api'})
           function (err, out) {
             reply(err || out)
           }
-        ) }
+        )
+      }
     })
 
     server.start(function () {

@@ -136,6 +136,10 @@ configuration, multicast, service registries, and custom
 approaches. Base nodes are **not** used for service discovery. They
 serve only as a convenient means for new nodes to join the network.
 
+In the above example, UDP multicast was used by default. In production
+you'll need to choose a discovery mechanism suitable for your network.
+
+
 The [examples](/examples) folder contains code for this
 example, and other scenarios demonstrating more complex network
 configurations:
@@ -147,6 +151,29 @@ configurations:
 As a counterpoint to mesh-based configuration, the
 [local-dev](/examples/10-local-dev) example is a reminder of the
 burden of traditional service location.
+
+
+## Development monitor
+
+You can monitor the status of your local development network using the
+`monitor` option:
+
+```
+// monitor.js
+Seneca({tag: 'rgb', log: 'silent'})
+  .use('../..', {
+    monitor: true
+  })
+```
+
+This prints a table of known services to the terminal. Use keys
+`Ctrl-C` to quit, and `p` to prune failed services. In the case of the
+[multicast-discovery](/examples/30-multicast-discovery) example, the
+monitor will output something like:
+
+<img src="https://github.com/senecajs/seneca-mesh/blob/master/monitor.png">
+
+
 
 
 ## Deployment

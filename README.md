@@ -54,8 +54,8 @@ require('seneca')()
 ```
 
 Using Windows? _seneca-mesh_ uses some native modules, so make sure to
-(configure
-msbuild)[https://github.com/Microsoft/nodejs-guidelines/blob/master/windows-environment.md#compiling-native-addon-modules].
+[configure
+msbuild](https://github.com/Microsoft/nodejs-guidelines/blob/master/windows-environment.md#compiling-native-addon-modules).
 
 
 

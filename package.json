@@ -14,7 +14,7 @@
     "Mihai Dima (https://github.com/mihaidma)"
   ],
   "scripts": {
-    "test": "lab test/*.test.js -r console -L -t 78 -c -v",
+    "test": "lab test/*.test.js -r console -L -t 80 -c -v",
     "annotate": "docco mesh.js -o docs/annotated",
     "lint": "lab *.js -dL",
     "coveralls": "lab -s -P test -r lcov | coveralls",

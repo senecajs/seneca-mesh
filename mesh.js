@@ -87,6 +87,8 @@ var optioner = Optioner({
 function mesh (options) {
   var seneca = this
 
+  seneca.depends('balance-client')
+
   optioner(options, function (err, options) {
     if (err) throw err
 
@@ -201,7 +203,7 @@ function mesh (options) {
             }
 
             if (ismesh) {
-              join(this, out, function () {
+              join(this.delegate({fatal$: false}), out, function () {
                 done()
 
                 // only finish mesh plugin init if all auto listens attempted

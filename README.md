@@ -35,7 +35,7 @@ help get you up and running quickly.
 
 ### Seneca compatibility
 
-Supports Seneca versions **1.x** - **3.x**
+Supports Seneca versions **3.x** and above.
 
 ## Install
 To install, use npm
@@ -52,6 +52,12 @@ And in your code:
 require('seneca')()
   .use('mesh', { ... options ... })
 ```
+
+Using Windows? Sneeze uses some native modules, so make sure to
+(configure
+msbuild)[https://github.com/Microsoft/nodejs-guidelines/blob/master/windows-environment.md#compiling-native-addon-modules].
+
+
 
 ## Quick Example
 

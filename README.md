@@ -161,7 +161,7 @@ You can monitor the status of your local development network using the
 ```
 // monitor.js
 Seneca({tag: 'rgb', log: 'silent'})
-  .use('../..', {
+  .use('mesh', {
     monitor: true
   })
 ```

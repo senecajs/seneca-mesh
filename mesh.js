@@ -224,10 +224,13 @@ function mesh (options) {
             config.pin = 'null:true'
           }
 
+          config.pin = intern.resolve_pins(instance, config)
+          delete config.pins
+
           var instance_sneeze_opts = _.clone(sneeze_opts)
           instance_sneeze_opts.identifier =
             sneeze_opts.identifier + '~' +
-            seneca.util.pincanon(config.pin || config.pins) + '~' + Date.now()
+            config.pin + '~' + Date.now()
 
           sneeze = Sneeze(instance_sneeze_opts)
 
@@ -277,9 +280,7 @@ function mesh (options) {
             if (closed) return
 
             var config = meta.config || {}
-
-            var pins = config.pins || config.pin || []
-            pins = _.isArray(pins) ? pins : [pins]
+            var pins = intern.resolve_pins(instance, config)
 
             _.each(pins, function (pin) {
               var pin_config = intern.make_pin_config(instance, meta, pin, config)
@@ -320,9 +321,7 @@ function mesh (options) {
             if (closed) return
 
             var config = meta.config || {}
-
-            var pins = config.pins || config.pin || []
-            pins = _.isArray(pins) ? pins : [pins]
+            var pins = intern.resolve_pins(instance, config)
 
             _.each(pins, function (pin) {
               var pin_config = intern.make_pin_config(instance, meta, pin, config)
@@ -620,14 +619,28 @@ function make_intern () {
     },
 
 
-    make_pin_config: function (instance, meta, pin, config) {
-      var pin_id = instance.util.pattern(pin)
+    resolve_pins: function (instance, config) {
+      var pins = config.pins || config.pin || []
+      pins = _.isArray(pins) ? pins : [pins]
 
+      pins = _.flatten(_.map(pins, function (pin) {
+        return _.isString(pin) ? pin.split(';') : pin
+      }))
+
+      pins = _.map(pins, function (pin) {
+        return instance.util.pincanon(pin)
+      })
+
+      return pins
+    },
+
+
+    make_pin_config: function (instance, meta, canonical_pin, config) {
       var pin_config = _.clone(config)
       delete pin_config.pins
       delete pin_config.pin
 
-      pin_config.pin = pin_id
+      pin_config.pin = canonical_pin
       pin_config.id = instance.util.pattern(pin_config) + '~' + meta.identifier$
 
       return pin_config

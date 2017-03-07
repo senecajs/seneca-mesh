@@ -71,7 +71,7 @@ describe('#mesh', function () {
     var si = Seneca({log: 'silent'})
 
     expect(intern.make_pin_config(
-      si, {identifier$: 'i0'}, {a: 1}, {pin: 'a:1', x: 1})).to.equal({
+      si, {identifier$: 'i0'}, 'a:1', {pin: 'a:1', x: 1})).to.equal({
         id: 'pin:a:1,x:1~i0',
         pin: 'a:1',
         x: 1
@@ -83,6 +83,73 @@ describe('#mesh', function () {
         pin: 'a:1',
         x: 1
       })
+
+    done()
+  })
+
+
+  it('intern.resolve_pins', function (done) {
+    var si = Seneca({log: 'silent'})
+
+    expect(intern.resolve_pins(si, {pin: 'a:1'}))
+           .to.equal(['a:1'])
+
+    expect(intern.resolve_pins(si, {pin: {a: 1}}))
+           .to.equal(['a:1'])
+
+    expect(intern.resolve_pins(si, {pins: 'a:1'}))
+           .to.equal(['a:1'])
+
+    expect(intern.resolve_pins(si, {pins: {a: 1}}))
+           .to.equal(['a:1'])
+
+    expect(intern.resolve_pins(si, {pin: ['a:1']}))
+           .to.equal(['a:1'])
+
+    expect(intern.resolve_pins(si, {pin: [{a: 1}]}))
+           .to.equal(['a:1'])
+
+    expect(intern.resolve_pins(si, {pins: ['a:1']}))
+           .to.equal(['a:1'])
+
+    expect(intern.resolve_pins(si, {pins: [{a: 1}]}))
+           .to.equal(['a:1'])
+
+
+    expect(intern.resolve_pins(si, {pin: 'a:1,b:2'}))
+           .to.equal(['a:1,b:2'])
+
+    expect(intern.resolve_pins(si, {pin: 'b:2,a:1'}))
+           .to.equal(['a:1,b:2'])
+
+    expect(intern.resolve_pins(si, {pin: 'a:1;b:2'}))
+           .to.equal(['a:1', 'b:2'])
+
+    expect(intern.resolve_pins(si, {pin: 'b:2;a:1'}))
+           .to.equal(['b:2', 'a:1'])
+
+    expect(intern.resolve_pins(si, {pin: 'a:1;a:1'}))
+           .to.equal(['a:1', 'a:1'])
+
+
+    expect(intern.resolve_pins(si, {pins: 'a:1;b:2'}))
+           .to.equal(['a:1', 'b:2'])
+
+    expect(intern.resolve_pins(si, {pins: ['a:1;b:2']}))
+           .to.equal(['a:1', 'b:2'])
+
+    expect(intern.resolve_pins(si, {pins: [{a: 1}, {b: 2}]}))
+           .to.equal(['a:1', 'b:2'])
+
+    expect(intern.resolve_pins(si, {pins: ['a:1', 'b:2']}))
+           .to.equal(['a:1', 'b:2'])
+
+    expect(intern.resolve_pins(si, {pin: 'a:1,b:2;c:3'}))
+           .to.equal(['a:1,b:2', 'c:3'])
+
+    expect(intern.resolve_pins(si, {pin: 'c:3;a:1,b:2'}))
+           .to.equal(['c:3', 'a:1,b:2'])
+
 
     done()
   })
@@ -528,6 +595,56 @@ describe('#mesh', function () {
           })
         })
     })
+  })
+
+
+  // Tests https://github.com/senecajs/seneca-mesh/issues/11
+  it('canonical-pins', {parallel: false, timeout: 5555}, function (done) {
+    var b0 = Seneca().test(done).use('..', {base: true})
+    var s0 = Seneca().test(done).use('..', {pin: 'a:1,b:2;c:3'})
+    var s1 = Seneca().test(done).use('..', {pin: 'c:3;b:2,a:1'})
+    var c0 = Seneca().test(done).use('..')
+
+    s0.add('a:1,b:2', function (msg, reply) { reply({s: 0, x: msg.x}) })
+    s1.add('a:1,b:2', function (msg, reply) { reply({s: 1, x: msg.x}) })
+
+    s0.add('c:3', function (msg, reply) { reply({s: 0, y: msg.y}) })
+    s1.add('c:3', function (msg, reply) { reply({s: 1, y: msg.y}) })
+
+    setTimeout(function () {
+      c0.gate()
+        .act('role:transport,type:balance,get:target-map', function (ignore, out) {
+          expect(out['a:1,b:2']['a:1,b:2'].targets.length).to.equal(2)
+          expect(out['c:3']['c:3'].targets.length).to.equal(2)
+        })
+
+        .act('c:3,y:100', function (ignore, out) {
+          expect(out).to.equal({s: 0, y: 100})
+        })
+        .act('c:3,y:200', function (ignore, out) {
+          expect(out).to.equal({s: 1, y: 200})
+        })
+        .act('c:3,y:300', function (ignore, out) {
+          expect(out).to.equal({s: 0, y: 300})
+        })
+
+        .act('a:1,b:2,x:400', function (ignore, out) {
+          expect(out).to.equal({s: 0, x: 400})
+        })
+        .act('a:1,b:2,x:500', function (ignore, out) {
+          expect(out).to.equal({s: 1, x: 500})
+        })
+        .act('a:1,b:2,x:600', function (ignore, out) {
+          expect(out).to.equal({s: 0, x: 600})
+
+          c0.close()
+          s0.close()
+          s1.close()
+          b0.close()
+
+          done()
+        })
+    }, 555)
   })
 })
 

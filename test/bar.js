@@ -6,9 +6,9 @@ var BASES = (process.env.BASES || process.argv[3] || '').split(',')
 var BROADCAST = process.env.BROADCAST
 var REGISTRY = JSON.parse(process.env.REGISTRY || '{"active":false}')
 
-require('seneca')({tag: 'bar'})
-  .add('bar:1', function (msg, done) {
-    done(null, {y: 1, v: 100 + msg.v})
+require('seneca')({ tag: 'bar' })
+  .add('bar:1', function(msg, done) {
+    done(null, { y: 1, v: 100 + msg.v })
   })
   .use('consul-registry', REGISTRY || {})
   .use('..', {
@@ -26,11 +26,10 @@ require('seneca')({tag: 'bar'})
       silent: false
     }
   })
-
-  .ready(function () {
+  .ready(function() {
     var seneca = this
 
-    setInterval(function () {
+    setInterval(function() {
       seneca.act('foo:1,v:1,default$:{}', console.log)
     }, 3000)
   })

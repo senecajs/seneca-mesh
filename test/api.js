@@ -11,26 +11,27 @@ var Seneca = require('seneca')
 var Hapi = require('hapi')
 var Chairo = require('chairo')
 
-var seneca = Seneca({tag: 'api'})
+var seneca = Seneca({ tag: 'api' })
 
 seneca.use('consul-registry', REGISTRY || {})
 
-seneca.use('..', {
-  host: HOST,
-  bases: BASES,
-  discover: {
-    multicast: {
-      address: BROADCAST
+seneca
+  .use('..', {
+    host: HOST,
+    bases: BASES,
+    discover: {
+      multicast: {
+        address: BROADCAST
+      },
+      registry: REGISTRY
     },
-    registry: REGISTRY
-  },
-  dumpnet: false,
-  sneeze: {
-    silent: false
-  }
-})
-  .ready(function () {
-    seneca.act('role:mesh,get:bases', function (err, out) {
+    dumpnet: false,
+    sneeze: {
+      silent: false
+    }
+  })
+  .ready(function() {
+    seneca.act('role:mesh,get:bases', function(err, out) {
       if (err) return
 
       var server = new Hapi.Server()
@@ -48,21 +49,20 @@ seneca.use('..', {
       })
 
       server.route({
-        method: 'GET', path: '/api/{srv}',
-        handler: function (req, reply) {
-          server.seneca.act(
-            req.params.srv + ':1',
-            {v: req.query.v},
-            function (err, out) {
-              reply(err || out)
-            }
-          ) }
+        method: 'GET',
+        path: '/api/{srv}',
+        handler: function(req, reply) {
+          server.seneca.act(req.params.srv + ':1', { v: req.query.v }, function(
+            err,
+            out
+          ) {
+            reply(err || out)
+          })
+        }
       })
 
-      server.start(function () {
+      server.start(function() {
         console.log('api', server.info.host, server.info.port, out.bases)
       })
     })
   })
-
-

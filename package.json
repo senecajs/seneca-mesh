@@ -18,7 +18,8 @@
     "annotate": "docco mesh.js -o docs/annotated",
     "lint": "lab *.js -dL",
     "coveralls": "lab -s -P test -r lcov | coveralls",
-    "coverage": "lab -v -P test -L -t 78 -r html > docs/coverage.html"
+    "coverage": "lab -v -P test -L -t 78 -r html > docs/coverage.html",
+    "prettier": "prettier --write --no-semi --single-quote mesh.js"
   },
   "repository": {
     "type": "git",
@@ -42,6 +43,7 @@
     "nid": "0.3.2",
     "node-discover": "0.6.0",
     "optioner": "0.8.0",
+    "prettier": "^1.3.1",
     "rif": "0.3.0",
     "sneeze": "0.8.0"
   },
@@ -50,14 +52,11 @@
     "color": "0.11.3",
     "coveralls": "2.11.x",
     "docco": "0.7.x",
-    "eslint-config-seneca": "3.x.x",
-    "eslint-plugin-hapi": "4.x.x",
-    "eslint-plugin-standard": "2.x.x",
     "hapi": "15.0.2",
     "lab": "11.0.x",
     "code": "4.0.x",
-    "seneca": "plugin",
-    "seneca-balance-client": "0.6.0",
+    "seneca": "../seneca",
+    "seneca-balance-client": "../seneca-balance-client",
     "seneca-consul-registry": "0.1.0"
   },
   "files": [

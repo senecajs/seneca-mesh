@@ -44,7 +44,7 @@ To install, use npm
 npm install seneca-balance-client
 npm install seneca-mesh
 ```
-The _seneca-mesh_ plugin depends on the [seneca-balance-client](Balance) plugin.
+The _seneca-mesh_ plugin depends on the [seneca-balance-client](https://github.com/rjrodger/seneca-balance-client) plugin.
 
 And in your code:
 

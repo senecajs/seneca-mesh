@@ -5,8 +5,6 @@
 
 'use strict'
 
-var BALANCE = true
-
 var _ = require('lodash')
 var Sneeze = require('sneeze')
 var Nid = require('nid')
@@ -31,11 +29,13 @@ var optioner = Optioner({
   port: Joi.number().integer().min(0).max(65535),
   isbase: false,
 
-  model: 'actor',
+  model: 'consume',
   listen: Joi.array(),
 
   auto: true,
   make_entry: intern.default_make_entry,
+
+  jointime: 111, // join and wait for network details
 
   discover: {
     defined: {
@@ -87,7 +87,7 @@ var optioner = Optioner({
 function mesh(options) {
   var seneca = this
 
-  BALANCE && seneca.depends('balance-client')
+  seneca.depends('balance-client')
 
   optioner(options, function(err, options) {
     if (err) throw err
@@ -126,13 +126,13 @@ function mesh(options) {
     ]
 
     var balance_client_opts = options.balance_client || {}
-    BALANCE && seneca.use('balance-client$mesh~' + mid, balance_client_opts)
+    seneca.use('balance-client$mesh~' + mid, balance_client_opts)
 
     seneca.add('init:mesh', init)
 
     function init(msg, init_done) {
       intern.find_bases(seneca, options, rif, function(found_bases) {
-        //console.log('FOUND',found_bases)
+        //console.log(seneca.id,'FOUND',found_bases)
 
         bases = found_bases
 
@@ -189,6 +189,7 @@ function mesh(options) {
 
             listen_opts.ismesh = true
 
+            //console.log(seneca.id,'LISTEN',listen_opts)
             seneca.listen(listen_opts)
           })
         }
@@ -211,12 +212,14 @@ function mesh(options) {
 
             if (ismesh) {
               join(this.delegate({ fatal$: false }), out, function() {
-                //console.log(['init:mesh JOIN', listen_count, listen.length].join('\t').replace(/\n/g,' '))
+                //console.log([seneca.id,'init:mesh JOIN', listen_count, listen.length].join('\t').replace(/\n/g,' '))
                 done()
 
                 // only finish mesh plugin init if all auto listens attempted
                 if (listen.length === listen_count) {
-                  init_done(last_mesh_listen_err)
+                  setTimeout(function(){
+                    init_done(last_mesh_listen_err)
+                  },options.jointime)
                 }
               })
             } else {
@@ -290,7 +293,7 @@ function mesh(options) {
           sneeze.join(meta)
 
           function add_client(meta) {
-            //console.log(['init:mesh add_client', JSON.stringify(meta)].join('\t').replace(/\n/g,' '))          
+            //console.log([seneca.id,'init:mesh add_client', JSON.stringify(meta)].join('\t').replace(/\n/g,' '))          
             if (closed) return
 
             var config = meta.config || {}
@@ -325,7 +328,7 @@ function mesh(options) {
               target_map[pin_config.id] = true
 
 
-              if (BALANCE && !has_balance_client) {
+              if (!has_balance_client) {
                 // no balancer for this pin, so add one
                 instance.client({
                   type: 'balance',
@@ -334,9 +337,9 @@ function mesh(options) {
                 })
               }
 
-              //console.log('MESH AC', pin_config)
+              //console.log(seneca.id, 'MESH AC', pin_config)
 
-              BALANCE && instance.act('role:transport,type:balance,add:client', {
+              instance.act('role:transport,type:balance,add:client', {
                 config: pin_config
               })
             })

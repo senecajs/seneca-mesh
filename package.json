@@ -55,6 +55,7 @@
     "hapi": "15.0.2",
     "lab": "11.0.x",
     "code": "4.0.x",
+    "seneca-repl": "1.0.x",
     "seneca": "../seneca",
     "seneca-balance-client": "../seneca-balance-client",
     "seneca-consul-registry": "0.1.0"

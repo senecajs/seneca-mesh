@@ -7,6 +7,7 @@
 
 
 var Assert = require('assert')
+var Util = require('util')
 
 var Lab = require('lab')
 var Code = require('code')
@@ -204,41 +205,53 @@ describe('#mesh', function () {
     var b0, s0, s1, c0
 
     b0 =
-      Seneca({tag: 'b0', log: 'test'})
-      .error(done)
+      Seneca({id$: 'b0', log: 'test'})
+      .test(done)//,'print')
       .use('..', {isbase: true, discover: test_discover, sneeze: {silent: true}})
 
     s0 =
-      Seneca({tag: 's0', log: 'test'})
-      .error(done)
+      Seneca({id$: 's0', log: 'test'})
+      .test(done)//,'print')
       .use('..', {pin: 'a:1', discover: test_discover, sneeze: {silent: true}})
       .add('a:1', function () { this.good({x: 0}) })
 
     s1 =
-      Seneca({tag: 's1', log: 'test'})
-      .error(done)
+      Seneca({id$: 's1', log: 'test'})
+      .test(done)//,'print')
       .use('..', {pin: 'a:1', discover: test_discover, sneeze: {silent: true}})
       .add('a:1', function () { this.good({x: 1}) })
 
     c0 =
-      Seneca({tag: 'c0', log: 'test'})
-      .error(done)
+      Seneca({id$: 'c0', log: 'test'})
+      .test(done)//,'print')
       .use('..', {discover: test_discover, sneeze: {silent: true}})
 
     b0.ready(function () {
-      // console.log('b0')
+      //console.log('b0')
 
       s0.ready(function () {
-          // console.log('s0')
+        //console.log('s0')
 
         s1.ready(function () {
-              // console.log('s1')
-
+          //console.log('s1')
+          
           c0.ready(function () {
-                  // console.log('c0')
+            //console.log('c0')
+
+/*
+            c0.act({role: 'transport', type: 'balance', get: 'target-map'},
+                   function(err,out){
+                     console.log('TARGETS',err, out)
+                   })
+
+            c0.act({role: 'mesh', get: 'members'},
+                   function(err,out){
+                     console.log('MEMBERS',err, Util.inspect(out,{depth:null}))
+                   })
+*/
 
             c0.act('a:1,s:0', function (e, o) {
-                    // console.log(0,e,o)
+              //console.log(0,e,o)
               Assert.equal(0, o.x)
 
               c0.act('a:1,s:1', function (e, o) {
@@ -443,16 +456,6 @@ describe('#mesh', function () {
       s0.close()
       b0.close()
       setTimeout(done, 555)
-
-      /*
-      c1.close(
-        c0.close.bind(
-          c0,s2.close.bind(
-            s2,s0.close.bind(
-                s0,b0.close.bind(
-                  b0,setTimeout.bind(this,done,555))))))
-
-       */
     }
   })
 

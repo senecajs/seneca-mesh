@@ -4,3 +4,6 @@ require('seneca')({tag:'a0'})
   .use('..',{
     pin:'a:0'
   })
+  .ready(function(){
+    this.act('d:0')
+  })

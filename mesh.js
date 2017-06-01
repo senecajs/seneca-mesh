@@ -20,7 +20,7 @@ module.exports = mesh
 var DEFAULT_HOST = (module.exports.DEFAULT_HOST = '127.0.0.1')
 var DEFAULT_PORT = (module.exports.DEFAULT_PORT = 39999)
 
-var intern = (module.exports.intern = make_intern())
+var intern = module.exports.intern = make_intern()
 
 var optioner = Optioner({
   pin: Joi.alternatives().try(Joi.string(), Joi.object()),
@@ -86,6 +86,8 @@ var optioner = Optioner({
 
 function mesh(options) {
   var seneca = this
+  //console.log('MESHDEF', seneca.did, seneca.fixedargs.fatal$)
+
 
   seneca.depends('balance-client')
 
@@ -131,9 +133,10 @@ function mesh(options) {
     seneca.add('init:mesh', init)
 
     function init(msg, init_done) {
-      intern.find_bases(seneca, options, rif, function(found_bases) {
-        //console.log(seneca.id,'FOUND',found_bases)
+      var seneca = this
+      //console.log('MESHINIT',seneca.did,seneca.fixedargs.fatal$)
 
+      intern.find_bases(seneca, options, rif, function(found_bases) {
         bases = found_bases
 
         seneca.log.debug({
@@ -143,9 +146,6 @@ function mesh(options) {
           bases: bases,
           options: options
         })
-
-        var listen_count = 0
-        var last_mesh_listen_err = null
 
         var sneeze_opts = options.sneeze || {}
 
@@ -165,7 +165,8 @@ function mesh(options) {
               ? null === tag ? null : 'seneca~' + tag
               : 'seneca~mesh'
 
-        seneca.add('role:transport,cmd:listen', transport_listen)
+        seneca.add('role:transport,cmd:listen', 
+                   intern.make_transport_listen(options, join, listen, init_done))
 
         // call seneca.listen as a convenience
         // subsequent seneca.listen calls will still publish to network
@@ -189,47 +190,16 @@ function mesh(options) {
 
             listen_opts.ismesh = true
 
-            //console.log(seneca.id,'LISTEN',listen_opts)
             seneca.listen(listen_opts)
           })
         }
 
-        function transport_listen(msg, done) {
-          //console.log(['init:mesh TL', JSON.stringify(msg), listen_count, listen.length].join('\t').replace(/\n/g,' '))
-
-          var ismesh = msg.config && msg.config.ismesh
-
-          // count of the mesh auto listens
-          listen_count += ismesh ? 1 : 0
-
-          this.prior(msg, function(err, out) {
-            //console.log(['init:mesh TLP', ismesh, JSON.stringify(out), listen_count, listen.length].join('\t').replace(/\n/g,' '))
-
-            if (err) {
-              last_mesh_listen_err = ismesh ? err : last_mesh_listen_err
-              return done(err)
-            }
-
-            if (ismesh) {
-              join(this.delegate({ fatal$: false }), out, function() {
-                //console.log([seneca.id,'init:mesh JOIN', listen_count, listen.length].join('\t').replace(/\n/g,' '))
-                done()
-
-                // only finish mesh plugin init if all auto listens attempted
-                if (listen.length === listen_count) {
-                  setTimeout(function(){
-                    init_done(last_mesh_listen_err)
-                  },options.jointime)
-                }
-              })
-            } else {
-              done()
-            }
-          })
-        }
 
         function join(instance, raw_config, done) {
-          //console.log('JOIN', instance.id, config)
+          //console.log('JOIN', instance.did, instance.fixedargs.fatal$)
+
+          var client_instance = instance.root.delegate()
+          //console.log('MESHDEF client', client_instance.did, client_instance.fixedargs)
 
           var config = seneca.util.clean(raw_config || {}, {proto:false})
 
@@ -244,7 +214,6 @@ function mesh(options) {
           instance_sneeze_opts.identifier =
             sneeze_opts.identifier + '~' + config.pin + '~' + Date.now()
 
-          //console.log('init:mesh SO', JSON.stringify(instance_sneeze_opts).replace(/\n/g,' '))
           sneeze = Sneeze(instance_sneeze_opts)
 
           var meta = {
@@ -253,7 +222,6 @@ function mesh(options) {
           }
 
           sneeze.on('error', function(err) {
-            //console.log('init:mesh SNEEZE ERROR',err)
             seneca.log.warn(err)
           })
           sneeze.on('add', add_client)
@@ -288,20 +256,17 @@ function mesh(options) {
           })
 
 
-          //console.log(['init:mesh SNEEZE JOIN', JSON.stringify(meta)].join('\t').replace(/\n/g,' '))          
-          //console.log('MCM',meta.config.meta$)
           sneeze.join(meta)
 
           function add_client(meta) {
-            //console.log([seneca.id,'init:mesh add_client', JSON.stringify(meta)].join('\t').replace(/\n/g,' '))          
             if (closed) return
 
             var config = meta.config || {}
-            var pins = intern.resolve_pins(instance, config)
+            var pins = intern.resolve_pins(client_instance, config)
 
             _.each(pins, function(pin) {
               var pin_config = intern.make_pin_config(
-                instance,
+                client_instance,
                 meta,
                 pin,
                 config
@@ -318,7 +283,7 @@ function mesh(options) {
               }
 
               // TODO: how to handle local override?
-              var actmeta = instance.find(pin)
+              var actmeta = client_instance.find(pin)
               var ignore_client = !!(actmeta && !actmeta.client)
 
               if (ignore_client) {
@@ -330,31 +295,28 @@ function mesh(options) {
 
               if (!has_balance_client) {
                 // no balancer for this pin, so add one
-                instance.client({
+                client_instance.client({
                   type: 'balance',
                   pin: pin,
                   model: config.model
                 })
               }
 
-              //console.log(seneca.id, 'MESH AC', pin_config)
-
-              instance.act('role:transport,type:balance,add:client', {
+              client_instance.act('role:transport,type:balance,add:client', {
                 config: pin_config
               })
             })
           }
 
           function remove_client(meta) {
-            //console.log(['init:mesh remove_client', JSON.stringify(meta)].join('\t').replace(/\n/g,' '))          
             if (closed) return
 
             var config = meta.config || {}
-            var pins = intern.resolve_pins(instance, config)
+            var pins = intern.resolve_pins(client_instance, config)
 
             _.each(pins, function(pin) {
               var pin_config = intern.make_pin_config(
-                instance,
+                client_instance,
                 meta,
                 pin,
                 config
@@ -366,7 +328,7 @@ function mesh(options) {
                 delete target_map[pin_config.id]
               }
 
-              instance.act('role:transport,type:balance,remove:client', {
+              client_instance.act('role:transport,type:balance,remove:client', {
                 config: pin_config, meta:meta
               })
             })
@@ -377,8 +339,49 @@ function mesh(options) {
   })
 }
 
+
 function make_intern() {
   return {
+    make_transport_listen: function (options, join, listen, init_done) {
+      var listen_count = 0
+      var last_mesh_listen_err = null
+
+      return function(msg, done) {
+        var seneca = this
+        //console.log('MESH TL',seneca.did,seneca.fixedargs.fatal$)
+
+        var ismesh = msg.config && msg.config.ismesh
+
+        // count of the mesh auto listens
+        listen_count += ismesh ? 1 : 0
+
+        seneca.prior(msg, function(err, out) {
+          var seneca = this
+          //console.log('MESH TLP',seneca.did,seneca.fixedargs.fatal$)
+
+          if (err) {
+            last_mesh_listen_err = ismesh ? err : last_mesh_listen_err
+            return done(err)
+          }
+
+          if (ismesh) {
+            join(seneca.delegate(), out, function() {
+              done()
+
+              // only finish mesh plugin init if all auto listens attempted
+              if (listen.length === listen_count) {
+                setTimeout(function(){
+                  init_done(last_mesh_listen_err)
+                },options.jointime)
+              }
+            })
+          } else {
+            done()
+          }
+        })
+      }
+    },
+
     resolve_interface: function(spec, rif) {
       var out = spec
 
@@ -441,8 +444,8 @@ function make_intern() {
     addbase_funcmap: {
       defined: function(seneca, options, bases, next) {
         var add = (options.sneeze || {}).bases ||
-        options.bases ||
-        options.remotes || []
+              options.bases ||
+              options.remotes || []
 
         add = add.filter(function(base) {
           return base && 0 < base.length
@@ -519,7 +522,7 @@ function make_intern() {
         var first = true
 
         var base_addr =
-          (options.host || DEFAULT_HOST) + ':' + (options.port || DEFAULT_PORT)
+              (options.host || DEFAULT_HOST) + ':' + (options.port || DEFAULT_PORT)
 
         if (options.isbase) {
           var ri = options.discover.registry.refresh_interval
@@ -548,8 +551,8 @@ function make_intern() {
 
               if (options.isbase) {
                 var prune_first =
-                  Math.random() <
-                  options.discover.registry.prune_first_probability
+                      Math.random() <
+                      options.discover.registry.prune_first_probability
 
                 if (prune_first || -1 === add.indexOf(base_addr)) {
                   add.push(base_addr)
@@ -557,7 +560,7 @@ function make_intern() {
 
                   if (
                     prune_first &&
-                    options.discover.registry.prune_bound < add.length
+                      options.discover.registry.prune_bound < add.length
                   ) {
                     add.shift()
                   }

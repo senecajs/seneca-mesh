@@ -298,7 +298,7 @@ describe('#mesh', function () {
   })
 
 
-  it('many-actors', {parallel: false, timeout: 9999}, function (done) {
+  it('many-actors', {parallel: false, timeout: 19999}, function (done) {
     var b0, s0, s1, s2, c0, c1
 
     b0 = Seneca({tag: 'b0', log: 'test', debug: {short_logs: true}})
@@ -328,7 +328,7 @@ describe('#mesh', function () {
         s1.use('..', {pin: 'a:1', model: 'actor', discover: test_discover, sneeze: {silent: true}}).ready(function () {
           s2.use('..', {pin: 'a:1', model: 'actor', discover: test_discover, sneeze: {silent: true}}).ready(function () {
             c0.use('..', {discover: test_discover, sneeze: {silent: true}}).ready(function () {
-              c1.use('..', {discover: test_discover, sneeze: {silent: true}}).ready(setTimeout.bind(null, do_topology, 222))
+              c1.use('..', {discover: test_discover, sneeze: {silent: true}}).ready(setTimeout.bind(null, do_topology, 1222))
             }) }) }) }) })
 
     function do_topology () {
@@ -397,7 +397,7 @@ describe('#mesh', function () {
                             c1.act('a:1,x:0', function (e, o) {
                               Assert.equal(3, o.x)
 
-                              s1.close(setTimeout.bind(this, do_s1_down, 1555))
+                              s1.close(setTimeout.bind(this, do_s1_down, 2555))
                             }) }) })
                       }) }) })
                 }) }) })
@@ -455,7 +455,7 @@ describe('#mesh', function () {
       s2.close()
       s0.close()
       b0.close()
-      setTimeout(done, 555)
+      setTimeout(done, 1555)
     }
   })
 
@@ -603,10 +603,10 @@ describe('#mesh', function () {
 
   // Tests https://github.com/senecajs/seneca-mesh/issues/11
   it('canonical-pins', {parallel: false, timeout: 5555}, function (done) {
-    var b0 = Seneca({legacy:{transport:false}}).test(done).use('..', {base: true})
-    var s0 = Seneca({legacy:{transport:false}}).test(done).use('..', {pin: 'a:1,b:2;c:3'})
-    var s1 = Seneca({legacy:{transport:false}}).test(done).use('..', {pin: 'c:3;b:2,a:1'})
-    var c0 = Seneca({legacy:{transport:false}}).test(done).use('..')
+    var b0 = Seneca({xlegacy:{transport:false}}).test(done).use('..', {base: true})
+    var s0 = Seneca({xlegacy:{transport:false}}).test(done).use('..', {pin: 'a:1,b:2;c:3'})
+    var s1 = Seneca({xlegacy:{transport:false}}).test(done).use('..', {pin: 'c:3;b:2,a:1'})
+    var c0 = Seneca({xlegacy:{transport:false}}).test(done).use('..')
 
     s0.add('a:1,b:2', function (msg, reply) { reply({s: 0, x: msg.x}) })
     s1.add('a:1,b:2', function (msg, reply) { reply({s: 1, x: msg.x}) })
@@ -615,7 +615,8 @@ describe('#mesh', function () {
     s1.add('c:3', function (msg, reply) { reply({s: 1, y: msg.y}) })
 
     setTimeout(function () {
-      c0.gate()
+      c0
+        .gate()
         .act('role:transport,type:balance,get:target-map', function (ignore, out) {
           expect(out['a:1,b:2']['a:1,b:2'].targets.length).to.equal(2)
           expect(out['c:3']['c:3'].targets.length).to.equal(2)
@@ -624,8 +625,6 @@ describe('#mesh', function () {
 
         .act('c:3,y:100', function (ignore, out) {
           expect(out).to.equal({s: 0, y: 100})
-
-/*
         })
 
         .act('c:3,y:200', function (ignore, out) {
@@ -644,7 +643,6 @@ describe('#mesh', function () {
 
         .act('a:1,b:2,x:600', function (ignore, out) {
           expect(out).to.equal({s: 0, x: 600})
-*/
 
           c0.close()
           s0.close()
@@ -653,7 +651,7 @@ describe('#mesh', function () {
 
           done()
         })
-    }, 555)
+    }, 2555)
   })
 })
 

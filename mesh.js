@@ -1,6 +1,6 @@
 /*
   MIT License,
-  Copyright (c) 2015-2016, Richard Rodger and other contributors.
+  Copyright (c) 2015-2017, Richard Rodger and other contributors.
 */
 
 'use strict'

@@ -196,8 +196,6 @@ function mesh(options) {
 
 
         function join(instance, raw_config, done) {
-          //console.log('JOIN', instance.did, instance.fixedargs.fatal$)
-
           var client_instance = instance.root.delegate()
           //console.log('MESHDEF client', client_instance.did, client_instance.fixedargs)
 
@@ -214,6 +212,8 @@ function mesh(options) {
           instance_sneeze_opts.identifier =
             sneeze_opts.identifier + '~' + config.pin + '~' + Date.now()
 
+          //console.log('JOIN', instance_sneeze_opts.identifier)
+          
           sneeze = Sneeze(instance_sneeze_opts)
 
           var meta = {
@@ -260,6 +260,14 @@ function mesh(options) {
 
           function add_client(meta) {
             if (closed) return
+
+            // ignore myself
+            if (client_instance.id === meta.instance) {
+              return
+            }
+
+            //console.log('SM ac', meta.identifier$)
+
 
             var config = meta.config || {}
             var pins = intern.resolve_pins(client_instance, config)
@@ -311,6 +319,11 @@ function mesh(options) {
           function remove_client(meta) {
             if (closed) return
 
+            // ignore myself
+            if (client_instance.id === meta.instance) {
+              return
+            }
+            
             var config = meta.config || {}
             var pins = intern.resolve_pins(client_instance, config)
 

@@ -3,12 +3,15 @@ dist: trusty
 language: node_js
 
 node_js:
+  - "8"
   - "6"
   - "4"
-
+  
 env:
   - SENECA_VER=@3.x.x
-  
+  - SENECA_VER=seneca@plugin
+  - SENECA_VER=senecajs/seneca
+
 before_script:
   - npm uninstall seneca
   - npm install seneca$SENECA_VER

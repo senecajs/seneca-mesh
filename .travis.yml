@@ -8,13 +8,13 @@ node_js:
   - "4"
   
 env:
-  - SENECA_VER=@3.x.x
+  - SENECA_VER=seneca@3.x.x
   - SENECA_VER=seneca@plugin
   - SENECA_VER=senecajs/seneca
 
 before_script:
   - npm uninstall seneca
-  - npm install seneca$SENECA_VER
+  - npm install $SENECA_VER
 
 after_script:
   - npm run coveralls

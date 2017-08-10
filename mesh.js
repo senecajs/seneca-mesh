@@ -86,8 +86,6 @@ var optioner = Optioner({
 
 function mesh(options) {
   var seneca = this
-  //console.log('MESHDEF', seneca.did, seneca.fixedargs.fatal$)
-
 
   seneca.depends('balance-client')
 
@@ -134,7 +132,6 @@ function mesh(options) {
 
     function init(msg, init_done) {
       var seneca = this
-      //console.log('MESHINIT',seneca.did,seneca.fixedargs.fatal$)
 
       intern.find_bases(seneca, options, rif, function(found_bases) {
         bases = found_bases
@@ -197,8 +194,6 @@ function mesh(options) {
 
         function join(instance, raw_config, done) {
           var client_instance = instance.root.delegate()
-          //console.log('MESHDEF client', client_instance.did, client_instance.fixedargs)
-
           var config = seneca.util.clean(raw_config || {}, {proto:false})
 
           if (!config.pin && !config.pins) {
@@ -212,8 +207,6 @@ function mesh(options) {
           instance_sneeze_opts.identifier =
             sneeze_opts.identifier + '~' + config.pin + '~' + Date.now()
 
-          //console.log('JOIN', instance_sneeze_opts.identifier)
-          
           sneeze = Sneeze(instance_sneeze_opts)
 
           var meta = {
@@ -265,9 +258,6 @@ function mesh(options) {
             if (client_instance.id === meta.instance) {
               return
             }
-
-            //console.log('SM ac', meta.identifier$)
-
 
             var config = meta.config || {}
             var pins = intern.resolve_pins(client_instance, config)
@@ -361,8 +351,6 @@ function make_intern() {
 
       return function(msg, done) {
         var seneca = this
-        //console.log('MESH TL',seneca.did,seneca.fixedargs.fatal$)
-
         var ismesh = msg.config && msg.config.ismesh
 
         // count of the mesh auto listens
@@ -370,7 +358,6 @@ function make_intern() {
 
         seneca.prior(msg, function(err, out) {
           var seneca = this
-          //console.log('MESH TLP',seneca.did,seneca.fixedargs.fatal$)
 
           if (err) {
             last_mesh_listen_err = ismesh ? err : last_mesh_listen_err

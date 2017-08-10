@@ -230,100 +230,74 @@ describe('#mesh', function () {
     })
   })
 
-  it('happy', {parallel: false, timeout: 5555}, function (done) {
+  it('happy', {parallel: false, timeout: 5555}, function (fin) {
     var b0, s0, s1, c0
 
     b0 =
-      Seneca({id$: 'b0', log: 'test'})
-      .test(done)//,'print')
-      .use('..', {isbase: true, discover: test_discover, sneeze: {silent: true}})
+      Seneca({id$: 'b0'})
+      .test(fin)
+      .use('..', {base: true, discover: test_discover, sneeze: {silent: true}})
 
     s0 =
-      Seneca({id$: 's0', log: 'test'})
-      .test(done)//,'print')
+      Seneca({id$: 's0'})
+      .test(fin)
       .use('..', {pin: 'a:1', discover: test_discover, sneeze: {silent: true}})
-      .add('a:1', function () { this.good({x: 0}) })
+      .add('a:1', function (m, r) { r({x: 0}) })
 
     s1 =
-      Seneca({id$: 's1', log: 'test'})
-      .test(done)//,'print')
+      Seneca({id$: 's1'})
+      .test(fin)//, 'print')
       .use('..', {pin: 'a:1', discover: test_discover, sneeze: {silent: true}})
-      .add('a:1', function () { this.good({x: 1}) })
+      .add('a:1', function (m, r) { r({x: 1}) })
+      .add('a:1', function (m, r) {
+        this.prior(m, r)
+      })
 
     c0 =
-      Seneca({id$: 'c0', log: 'test'})
-      .test(done)//,'print')
+      Seneca({id$: 'c0'})
+      .test(fin)
       .use('..', {discover: test_discover, sneeze: {silent: true}})
 
-    b0.ready(function () {
-      //console.log('b0')
+    b0.ready(s0.ready.bind(s0, s1.ready.bind(s1, c0.ready.bind(c0, function () {
+      c0
+        .gate()
+        .act({role: 'transport', type: 'balance', get: 'target-map'},
+             function(e,o){
+               expect(o['a:1']['a:1'].targets.length).equal(2)
+             })
+      
+        .act({role: 'mesh', get: 'members'},
+             function(e,o){
+               expect(o.list.length).equal(3)
+             })
 
-      s0.ready(function () {
-        //console.log('s0')
+        .act('a:1,s:0', function (e, o) {
+          expect(o.x).equal(0)
+        })
+        .act('a:1,s:1', function (e, o) {
+          expect(o.x).equal(1)
+        })
+        .act('a:1,s:2', function (e, o) {
+          expect(o.x).equal(0)
+        })
 
-        s1.ready(function () {
-          //console.log('s1')
-          
-          c0.ready(function () {
-            //console.log('c0')
+        .ready(function() {
+          b0.act('role:mesh,get:members', function (e, o) {
+            expect(o.list.length).equal(3)
 
-/*
-            c0.act({role: 'transport', type: 'balance', get: 'target-map'},
-                   function(err,out){
-                     console.log('TARGETS',err, out)
-                   })
-
-            c0.act({role: 'mesh', get: 'members'},
-                   function(err,out){
-                     console.log('MEMBERS',err, Util.inspect(out,{depth:null}))
-                   })
-*/
-
-            c0.act('a:1,s:0', function (e, o) {
-              //console.log(0,e,o)
-              Assert.equal(0, o.x)
-
-              c0.act('a:1,s:1', function (e, o) {
-                      // console.log(1,e,o)
-                Assert.equal(1, o.x)
-
-                c0.act('a:1,s:2', function (e, o) {
-                        // console.log(2,e,o)
-                  Assert.equal(0, o.x)
-
-                  b0.act('role:mesh,get:members', function (e, o) {
-                    Assert.equal(3, o.list.length)
-
-                    s0.close(function () {
-                      setTimeout(function () {
-                        c0.act('a:1,s:3', function (e, o) {
-                          // console.log(3,e,o)
-                          Assert.equal(1, o.x)
-
-                          c0.act('a:1,s:4', function (e, o) {
-                            // console.log(4,e,o)
-                            Assert.equal(1, o.x)
-
-                            c0.close(function () {
-                              s1.close(function () {
-                                b0.close(function () {
-                                  // console.log('done')
-                                  done()
-                                })
-                              })
-                            })
-                          })
-                        })
-                      }, 1555)
-                    })
-                  })
+            s0.close(setTimeout.bind(null,function () {
+              c0
+                .act('a:1,s:3', function (e, o) {
+                  expect(o.x).equal(1)
                 })
-              })
-            })
+                .act('a:1,s:4', function (e, o) {
+                  expect(o.x).equal(1)
+                })
+              
+                .close(s1.close.bind(s1,b0.close.bind(b0, fin)))},1555))
           })
         })
-      })
-    })
+    }))))
   })
 
 

@@ -301,7 +301,7 @@ function mesh(options) {
               }
 
               client_instance.act('role:transport,type:balance,add:client', {
-                config: pin_config
+                config: pin_config, meta: meta
               })
             })
           }

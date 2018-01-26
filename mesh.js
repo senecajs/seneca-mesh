@@ -80,7 +80,10 @@ var optioner = Optioner({
     },
 
     // stop discovery if defined bases are provided
-    stop: true
+    stop: true,
+
+    // when all base nodes are lost, try to recover
+    rediscover: false
   },
 
   monitor: false,
@@ -201,6 +204,7 @@ function mesh(options) {
         function join(instance, raw_config, done) {
           var client_instance = instance.root.delegate()
           var config = seneca.util.clean(raw_config || {}, { proto: false })
+          var alive_bases = 0
 
           if (!config.pin && !config.pins) {
             config.pin = 'null:true'
@@ -219,6 +223,7 @@ function mesh(options) {
             config: seneca.util.clean(config),
             instance: instance.id
           }
+          var instanceMeta = meta
 
           sneeze.on('error', function(err) {
             seneca.log.warn(err)
@@ -254,11 +259,11 @@ function mesh(options) {
             })
           })
 
-
           sneeze.join(meta)
 
           function add_client(meta) {
             if (closed) return
+            if (meta.config.pin[0] === 'base:true,role:mesh') ++alive_bases
 
             // ignore myself
             if (client_instance.id === meta.instance) {
@@ -310,14 +315,15 @@ function mesh(options) {
             })
           }
 
-          function remove_client(meta) {
+          function remove_client(meta, cleaning_up) {
             if (closed) return
+            if (meta.config.pin[0] === 'base:true,role:mesh') --alive_bases
 
             // ignore myself
             if (client_instance.id === meta.instance) {
               return
             }
-            
+
             var config = meta.config || {}
             var pins = intern.resolve_pins(client_instance, config)
 
@@ -336,9 +342,42 @@ function mesh(options) {
               }
 
               client_instance.act('role:transport,type:balance,remove:client', {
-                config: pin_config, meta:meta
+                config: pin_config,
+                meta: meta
               })
             })
+
+            if (
+              options.discover.rediscover &&
+              alive_bases < 1 &&
+              cleaning_up !== true
+            ) {
+              var members = sneeze.members()
+              var rejoin = function rejoin() {
+                intern.find_bases(seneca, options, rif, function(found_bases) {
+                  if (found_bases.length === 0) setTimeout(rejoin, 1111)
+                  bases = found_bases
+
+                  seneca.log.debug({
+                    kind: 'mesh',
+                    host: options.host,
+                    port: options.port,
+                    bases: bases,
+                    options: options
+                  })
+
+                  sneeze_opts.bases = bases
+
+                  sneeze.join(instanceMeta)
+                })
+              }
+
+              Object.keys(members).forEach(function(member) {
+                remove_client(members[member].meta, true)
+              })
+              sneeze.leave()
+              setTimeout(rejoin, 1111)
+            }
           }
         }
       })

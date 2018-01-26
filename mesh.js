@@ -368,6 +368,10 @@ function mesh(options) {
 
                   sneeze_opts.bases = bases
 
+                  // retry on error
+                  sneeze.once('error', function() {
+                    setTimeout(rejoin, 1111)
+                  })
                   sneeze.join(instanceMeta)
                 })
               }

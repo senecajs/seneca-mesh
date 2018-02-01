@@ -810,6 +810,101 @@ describe('#mesh', function() {
         })
     }, 2555)
   })
+
+  it('rejoin', { parallel: false, timeout: 8888 }, function(done) {
+    var b0b, s0b
+
+    function custom_bases(seneca, options, bases, next) {
+      next(['127.0.0.1:39901'])
+    }
+
+    b0b = Seneca({ tag: 'b0b', log: 'silent', debug: { short_logs: true } })
+      .error(done)
+      .use('..', {
+        isbase: true,
+        port: 39901,
+        sneeze: {
+          silent: true
+        },
+        discover: {
+          custom: {
+            active: true,
+            find: custom_bases
+          }
+        }
+      })
+
+    s0b = Seneca({ tag: 's0b', log: 'silent', debug: { short_logs: true } })
+      .error(done)
+      .add('a:1', function(msg) {
+        this.good({ x: msg.i })
+      })
+
+    b0b.ready(function() {
+      s0b
+        .use('..', {
+          pin: 'a:1',
+          discover: {
+            rediscover: true,
+            custom: {
+              active: true,
+              find: custom_bases
+            }
+          }
+        })
+        .ready(function() {
+          s0b.act('role:mesh,get:members', function(err, out) {
+            if (err) {
+              done(err)
+            }
+            Assert.equal(1, out.list.length)
+
+            b0b.close()
+            b0b = null
+            function delayEmpty(cb) {
+              setTimeout(function() {
+                s0b.act('role:mesh,get:members', function(err, out) {
+                  Assert.equal(0, out.list.length)
+                  cb()
+                })
+              }, 1111)
+            }
+
+            delayEmpty(function() {
+              b0b = Seneca({
+                tag: 'b0b',
+                log: 'silent',
+                debug: { short_logs: true }
+              })
+                .error(done)
+                .use('..', {
+                  isbase: true,
+                  port: 39901,
+                  sneeze: {
+                    silent: true
+                  },
+                  discover: {
+                    custom: {
+                      active: true,
+                      find: custom_bases
+                    }
+                  }
+                })
+                .ready(function() {
+                  setTimeout(function() {
+                    s0b.act('role:mesh,get:members', function(err, out) {
+                      Assert.equal(1, out.list.length)
+                      b0b.close()
+                      s0b.close()
+                      done()
+                    })
+                  }, 2222)
+                })
+            })
+          })
+        })
+    })
+  })
 })
 
 function make_rif() {

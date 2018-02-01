@@ -48,17 +48,17 @@
   },
   "devDependencies": {
     "chairo": "2.2.1",
+    "code": "4.1.x",
     "color": "0.11.3",
     "coveralls": "2.13.x",
     "docco": "0.7.x",
     "hapi": "15.0.2",
     "lab": "14.0.x",
-    "code": "4.1.x",
-    "seneca-repl": "1.0.x",
+    "prettier": "^1.10.2",
     "seneca": "plugin",
     "seneca-balance-client": "0.6.1",
     "seneca-consul-registry": "0.1.0",
-    "prettier": "1.4.x"
+    "seneca-repl": "1.0.x"
   },
   "files": [
     "README.md",

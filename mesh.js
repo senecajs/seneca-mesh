@@ -370,6 +370,7 @@ function mesh(options) {
 
                   // retry on error
                   sneeze.once('error', function() {
+                    sneeze.leave()
                     setTimeout(rejoin, 1111)
                   })
                   sneeze.join(instanceMeta)

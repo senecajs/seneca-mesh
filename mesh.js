@@ -316,8 +316,12 @@ function mesh(options) {
           }
 
           function remove_client(meta, cleaning_up) {
+            var base_left = false
             if (closed) return
-            if (meta.config.pin[0] === 'base:true,role:mesh') --alive_bases
+            if (meta.config.pin[0] === 'base:true,role:mesh') {
+              base_left = true
+              --alive_bases
+            }
 
             // ignore myself
             if (client_instance.id === meta.instance) {
@@ -349,6 +353,7 @@ function mesh(options) {
 
             if (
               options.discover.rediscover &&
+              base_left === true &&
               alive_bases < 1 &&
               cleaning_up !== true
             ) {

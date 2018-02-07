@@ -20,13 +20,16 @@ module.exports = mesh
 var DEFAULT_HOST = (module.exports.DEFAULT_HOST = '127.0.0.1')
 var DEFAULT_PORT = (module.exports.DEFAULT_PORT = 39999)
 
-var intern = module.exports.intern = make_intern()
+var intern = (module.exports.intern = make_intern())
 
 var optioner = Optioner({
   pin: Joi.alternatives().try(Joi.string(), Joi.object()),
   pins: Joi.array(),
   host: Joi.string(),
-  port: Joi.number().integer().min(0).max(65535),
+  port: Joi.number()
+    .integer()
+    .min(0)
+    .max(65535),
   isbase: false,
 
   model: 'consume',
@@ -77,7 +80,10 @@ var optioner = Optioner({
     },
 
     // stop discovery if defined bases are provided
-    stop: true
+    stop: true,
+
+    // when all base nodes are lost, try to recover
+    rediscover: false
   },
 
   monitor: false,
@@ -156,14 +162,17 @@ function mesh(options) {
           active: !!options.monitor
         }
 
-        sneeze_opts.tag = void 0 !== sneeze_opts.tag
-          ? sneeze_opts.tag
-          : void 0 !== tag
+        sneeze_opts.tag =
+          void 0 !== sneeze_opts.tag
+            ? sneeze_opts.tag
+            : void 0 !== tag
               ? null === tag ? null : 'seneca~' + tag
               : 'seneca~mesh'
 
-        seneca.add('role:transport,cmd:listen', 
-                   intern.make_transport_listen(options, join, listen, init_done))
+        seneca.add(
+          'role:transport,cmd:listen',
+          intern.make_transport_listen(options, join, listen, init_done)
+        )
 
         // call seneca.listen as a convenience
         // subsequent seneca.listen calls will still publish to network
@@ -177,11 +186,12 @@ function mesh(options) {
               listen_opts.host = rif(listen_opts.host.substring(1))
             }
 
-            listen_opts.port = null != listen_opts.port
-              ? listen_opts.port
-              : function() {
-                  return 50000 + Math.floor(10000 * Math.random())
-                }
+            listen_opts.port =
+              null != listen_opts.port
+                ? listen_opts.port
+                : function() {
+                    return 50000 + Math.floor(10000 * Math.random())
+                  }
 
             listen_opts.model = listen_opts.model || 'consume'
 
@@ -191,10 +201,10 @@ function mesh(options) {
           })
         }
 
-
         function join(instance, raw_config, done) {
           var client_instance = instance.root.delegate()
-          var config = seneca.util.clean(raw_config || {}, {proto:false})
+          var config = seneca.util.clean(raw_config || {}, { proto: false })
+          var alive_bases = 0
 
           if (!config.pin && !config.pins) {
             config.pin = 'null:true'
@@ -213,6 +223,7 @@ function mesh(options) {
             config: seneca.util.clean(config),
             instance: instance.id
           }
+          var instanceMeta = meta
 
           sneeze.on('error', function(err) {
             seneca.log.warn(err)
@@ -248,11 +259,11 @@ function mesh(options) {
             })
           })
 
-
           sneeze.join(meta)
 
           function add_client(meta) {
             if (closed) return
+            if (meta.config.pin[0] === 'base:true,role:mesh') ++alive_bases
 
             // ignore myself
             if (client_instance.id === meta.instance) {
@@ -271,9 +282,8 @@ function mesh(options) {
               )
 
               var has_balance_client = !!balance_map[pin_config.pin]
-              var target_map = (balance_map[pin_config.pin] = balance_map[
-                pin_config.pin
-              ] || {})
+              var target_map = (balance_map[pin_config.pin] =
+                balance_map[pin_config.pin] || {})
 
               // this is a duplicate, so ignore
               if (target_map[pin_config.id]) {
@@ -290,7 +300,6 @@ function mesh(options) {
 
               target_map[pin_config.id] = true
 
-
               if (!has_balance_client) {
                 // no balancer for this pin, so add one
                 client_instance.client({
@@ -306,14 +315,19 @@ function mesh(options) {
             })
           }
 
-          function remove_client(meta) {
+          function remove_client(meta, cleaning_up) {
+            var base_left = false
             if (closed) return
+            if (meta.config.pin[0] === 'base:true,role:mesh') {
+              base_left = true
+              --alive_bases
+            }
 
             // ignore myself
             if (client_instance.id === meta.instance) {
               return
             }
-            
+
             var config = meta.config || {}
             var pins = intern.resolve_pins(client_instance, config)
 
@@ -332,9 +346,48 @@ function mesh(options) {
               }
 
               client_instance.act('role:transport,type:balance,remove:client', {
-                config: pin_config, meta:meta
+                config: pin_config,
+                meta: meta
               })
             })
+
+            if (
+              options.discover.rediscover &&
+              base_left === true &&
+              alive_bases < 1 &&
+              cleaning_up !== true
+            ) {
+              var members = sneeze.members()
+              var rejoin = function rejoin() {
+                intern.find_bases(seneca, options, rif, function(found_bases) {
+                  if (found_bases.length === 0) setTimeout(rejoin, 1111)
+                  bases = found_bases
+
+                  seneca.log.debug({
+                    kind: 'mesh',
+                    host: options.host,
+                    port: options.port,
+                    bases: bases,
+                    options: options
+                  })
+
+                  sneeze_opts.bases = bases
+
+                  // retry on error
+                  sneeze.once('error', function() {
+                    sneeze.leave()
+                    setTimeout(rejoin, 1111)
+                  })
+                  sneeze.join(instanceMeta)
+                })
+              }
+
+              Object.keys(members).forEach(function(member) {
+                remove_client(members[member].meta, true)
+              })
+              sneeze.leave()
+              setTimeout(rejoin, 1111)
+            }
           }
         }
       })
@@ -342,10 +395,9 @@ function mesh(options) {
   })
 }
 
-
 function make_intern() {
   return {
-    make_transport_listen: function (options, join, listen, init_done) {
+    make_transport_listen: function(options, join, listen, init_done) {
       var listen_count = 0
       var last_mesh_listen_err = null
 
@@ -370,9 +422,9 @@ function make_intern() {
 
               // only finish mesh plugin init if all auto listens attempted
               if (listen.length === listen_count) {
-                setTimeout(function(){
+                setTimeout(function() {
                   init_done(last_mesh_listen_err)
-                },options.jointime)
+                }, options.jointime)
               }
             })
           } else {
@@ -426,7 +478,8 @@ function make_intern() {
         do {
           ++abI
         } while (
-          abI < addbases.length && !options.discover[addbases[abI]].active
+          abI < addbases.length &&
+          !options.discover[addbases[abI]].active
         )
 
         addbase = addbases[abI]
@@ -443,9 +496,8 @@ function make_intern() {
 
     addbase_funcmap: {
       defined: function(seneca, options, bases, next) {
-        var add = (options.sneeze || {}).bases ||
-              options.bases ||
-              options.remotes || []
+        var add =
+          (options.sneeze || {}).bases || options.bases || options.remotes || []
 
         add = add.filter(function(base) {
           return base && 0 < base.length
@@ -522,7 +574,7 @@ function make_intern() {
         var first = true
 
         var base_addr =
-              (options.host || DEFAULT_HOST) + ':' + (options.port || DEFAULT_PORT)
+          (options.host || DEFAULT_HOST) + ':' + (options.port || DEFAULT_PORT)
 
         if (options.isbase) {
           var ri = options.discover.registry.refresh_interval
@@ -551,8 +603,8 @@ function make_intern() {
 
               if (options.isbase) {
                 var prune_first =
-                      Math.random() <
-                      options.discover.registry.prune_first_probability
+                  Math.random() <
+                  options.discover.registry.prune_first_probability
 
                 if (prune_first || -1 === add.indexOf(base_addr)) {
                   add.push(base_addr)
@@ -560,7 +612,7 @@ function make_intern() {
 
                   if (
                     prune_first &&
-                      options.discover.registry.prune_bound < add.length
+                    options.discover.registry.prune_bound < add.length
                   ) {
                     add.shift()
                   }

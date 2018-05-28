@@ -1,7 +1,4 @@
-/*
-  MIT License,
-  Copyright (c) 2015-2017, Richard Rodger and other contributors.
-*/
+/* MIT License. Copyright (c) 2015-2018, Richard Rodger and other contributors. */
 
 'use strict'
 
@@ -20,6 +17,7 @@ var describe = lab.describe
 var it = lab.it
 var expect = Code.expect
 
+var tmx = parseInt(process.env.TIMEOUT_MULTIPLIER || 1, 10)
 
 var Mesh = require('..')
 
@@ -36,10 +34,10 @@ var test_discover = {
 
 describe('#mesh', function () {
 
-  it('nextgen-single-with-base', {parallel: false, timeout: 5555}, function (fin) {
+  it('nextgen-single-with-base', {parallel: false, timeout: 5555*tmx}, function (fin) {
     var b0 = Seneca({tag: 'b0', legacy: { transport: false }})
         .test(fin)
-        .use('..', {base: true, discover: test_discover})
+        .use(Mesh, {base: true, discover: test_discover})
 
     var s0 = Seneca({tag: 's0', legacy: { transport: false }})
         .test(fin)
@@ -47,7 +45,7 @@ describe('#mesh', function () {
 
     b0.ready(function () {
       s0
-        .use('..', {pin: 'a:1', discover: test_discover})
+        .use(Mesh, {pin: 'a:1', discover: test_discover})
         .ready(function () {
 
           b0.act('a:1,x:0', function (ignore, out) {
@@ -56,7 +54,8 @@ describe('#mesh', function () {
             b0.act('a:1,x:1', function (ignore, out) {
               Assert.equal(1, out.x)
 
-              s0.close(b0.close.bind(b0, setTimeout.bind(this, fin, 555)))
+              //s0.close(b0.close.bind(b0, setTimeout.bind(this, fin, 555*tmx)))
+              close(fin,777,s0,b0)
             })
           })
         })
@@ -185,23 +184,23 @@ describe('#mesh', function () {
   })
 
 
-  it('base', {timeout: 5555, parallel: false}, function (done) {
+  it('base', {timeout: 5555*tmx, parallel: false}, function (done) {
     Seneca({tag: 'b0a', log: 'test', debug: {short_logs: true}})
     .error(done)
-    .use('..', {isbase: true, discover: test_discover})
+    .use(Mesh, {isbase: true, discover: test_discover})
     .ready(function () {
-      this.close(setTimeout.bind(this, done, 555))
+      this.close(setTimeout.bind(this, done, 555*tmx))
     })
   })
 
 
-  it('single-with-base', {parallel: false, timeout: 5555}, function (done) {
+  it('single-with-base', {parallel: false, timeout: 5555*tmx}, function (done) {
     var b0b, s0b
 
     b0b =
       Seneca({tag: 'b0b', log: 'silent', debug: {short_logs: true}})
       .error(done)
-      .use('..', {isbase: true, discover: test_discover})
+      .use(Mesh, {isbase: true, discover: test_discover})
 
     s0b =
       Seneca({tag: 's0b', log: 'silent', debug: {short_logs: true}})
@@ -209,7 +208,7 @@ describe('#mesh', function () {
       .add('a:1', function (msg) { this.good({x: msg.i}) })
 
     b0b.ready(function () {
-      s0b.use('..', {pin: 'a:1', discover: test_discover}).ready(function () {
+      s0b.use(Mesh, {pin: 'a:1', discover: test_discover}).ready(function () {
         s0b.act('role:mesh,get:members', function (err, out) {
           if (err) { done(err) }
           Assert.equal(1, out.list.length)
@@ -222,7 +221,7 @@ describe('#mesh', function () {
               if (err) { done(err) }
               Assert.equal(1, out.x)
 
-              s0b.close(b0b.close.bind(b0b, setTimeout.bind(this, done, 555)))
+              s0b.close(b0b.close.bind(b0b, setTimeout.bind(this, done, 555*tmx)))
             })
           })
         })
@@ -230,24 +229,24 @@ describe('#mesh', function () {
     })
   })
 
-  it('happy', {parallel: false, timeout: 5555}, function (fin) {
+  it('happy', {parallel: false, timeout: 5555*tmx}, function (fin) {
     var b0, s0, s1, c0
 
     b0 =
       Seneca({id$: 'b0'})
       .test(fin)
-      .use('..', {base: true, discover: test_discover, sneeze: {silent: true}})
+      .use(Mesh, {base: true, discover: test_discover, sneeze: {silent: true}})
 
     s0 =
       Seneca({id$: 's0'})
       .test(fin)
-      .use('..', {pin: 'a:1', discover: test_discover, sneeze: {silent: true}})
+      .use(Mesh, {pin: 'a:1', discover: test_discover, sneeze: {silent: true}})
       .add('a:1', function (m, r) { r({x: 0}) })
 
     s1 =
       Seneca({id$: 's1'})
-      .test(fin)//, 'print')
-      .use('..', {pin: 'a:1', discover: test_discover, sneeze: {silent: true}})
+      .test(fin)
+      .use(Mesh, {pin: 'a:1', discover: test_discover, sneeze: {silent: true}})
       .add('a:1', function (m, r) { r({x: 1}) })
       .add('a:1', function (m, r) {
         this.prior(m, r)
@@ -256,7 +255,7 @@ describe('#mesh', function () {
     c0 =
       Seneca({id$: 'c0'})
       .test(fin)
-      .use('..', {discover: test_discover, sneeze: {silent: true}})
+      .use(Mesh, {discover: test_discover, sneeze: {silent: true}})
 
     b0.ready(s0.ready.bind(s0, s1.ready.bind(s1, c0.ready.bind(c0, function () {
       c0
@@ -294,14 +293,15 @@ describe('#mesh', function () {
                   expect(o.x).equal(1)
                 })
               
-                .close(s1.close.bind(s1,b0.close.bind(b0, fin)))},1555))
+                .close(s1.close.bind(s1,b0.close.bind(
+                  b0, setTimeout.bind(this, fin, 555*tmx))))},1555*tmx))
           })
         })
     }))))
   })
 
 
-  it('many-actors', {parallel: false, timeout: 19999}, function (done) {
+  it('many-actors', {parallel: false, timeout: 19999*tmx}, function (done) {
     var b0, s0, s1, s2, c0, c1
 
     b0 = Seneca({tag: 'b0', log: 'test', debug: {short_logs: true}})
@@ -326,12 +326,12 @@ describe('#mesh', function () {
       .error(done)
 
 
-    b0.use('..', {isbase: true, discover: test_discover, sneeze: {silent: true}}).ready(function () {
-      s0.use('..', {pin: 'a:1', model: 'actor', discover: test_discover, sneeze: {silent: true}}).ready(function () {
-        s1.use('..', {pin: 'a:1', model: 'actor', discover: test_discover, sneeze: {silent: true}}).ready(function () {
-          s2.use('..', {pin: 'a:1', model: 'actor', discover: test_discover, sneeze: {silent: true}}).ready(function () {
-            c0.use('..', {discover: test_discover, sneeze: {silent: true}}).ready(function () {
-              c1.use('..', {discover: test_discover, sneeze: {silent: true}}).ready(setTimeout.bind(null, do_topology, 1222))
+    b0.use(Mesh, {isbase: true, discover: test_discover, sneeze: {silent: true}}).ready(function () {
+      s0.use(Mesh, {pin: 'a:1', model: 'actor', discover: test_discover, sneeze: {silent: true}}).ready(function () {
+        s1.use(Mesh, {pin: 'a:1', model: 'actor', discover: test_discover, sneeze: {silent: true}}).ready(function () {
+          s2.use(Mesh, {pin: 'a:1', model: 'actor', discover: test_discover, sneeze: {silent: true}}).ready(function () {
+            c0.use(Mesh, {discover: test_discover, sneeze: {silent: true}}).ready(function () {
+              c1.use(Mesh, {discover: test_discover, sneeze: {silent: true}}).ready(setTimeout.bind(null, do_topology, 1222))
             }) }) }) }) })
 
     function do_topology () {
@@ -400,7 +400,7 @@ describe('#mesh', function () {
                             c1.act('a:1,x:0', function (e, o) {
                               Assert.equal(3, o.x)
 
-                              s1.close(setTimeout.bind(this, do_s1_down, 2555))
+                              s1.close(setTimeout.bind(this, do_s1_down, 2555*tmx))
                             }) }) })
                       }) }) })
                 }) }) })
@@ -458,12 +458,12 @@ describe('#mesh', function () {
       s2.close()
       s0.close()
       b0.close()
-      setTimeout(done, 1555)
+      setTimeout(done, 1555*tmx)
     }
   })
 
 
-  it('observe-consume-basic', {parallel: false, timeout: 9999}, function (done) {
+  it('observe-consume-basic', {parallel: false, timeout: 9999*tmx}, function (done) {
     var b0, s0, s1, c0
     var s0x = 0
     var s1z = 0
@@ -487,20 +487,20 @@ describe('#mesh', function () {
       .error(done)
 
 
-    b0.use('..', {isbase: true, discover: test_discover, sneeze: {silent: true}}).ready(function () {
-      s0.use('..', {
+    b0.use(Mesh, {isbase: true, discover: test_discover, sneeze: {silent: true}}).ready(function () {
+      s0.use(Mesh, {
         listen: [
           {pin: 'a:1'},
           {pin: 'b:1', model: 'observe'}
         ], discover: test_discover
       }).ready(function () {
-        s1.use('..', {
+        s1.use(Mesh, {
           listen: [
               {pin: 'c:1'},
               {pin: 'b:1', model: 'observe'}
           ], discover: test_discover
         }).ready(function () {
-          c0.use('..', {discover: test_discover, sneeze: {silent: true}}).ready(do_abc)
+          c0.use(Mesh, {discover: test_discover, sneeze: {silent: true}}).ready(do_abc)
         }) }) })
 
 
@@ -538,12 +538,12 @@ describe('#mesh', function () {
       s1.close()
       s0.close()
       b0.close()
-      setTimeout(done, 555)
+      setTimeout(done, 555*tmx)
     }
   })
 
 
-  it('single-custom', {parallel: false, timeout: 5555}, function (done) {
+  it('single-custom', {parallel: false, timeout: 5555*tmx}, function (done) {
     var b0b, s0b
 
     function custom_bases (seneca, options, bases, next) {
@@ -553,7 +553,7 @@ describe('#mesh', function () {
     b0b =
       Seneca({tag: 'b0b', log: 'silent', debug: {short_logs: true}})
       .error(done)
-      .use('..', {
+      .use(Mesh, {
         isbase: true,
         port: 39901,
         sneeze: {
@@ -572,7 +572,7 @@ describe('#mesh', function () {
       .add('a:1', function (msg) { this.good({x: msg.i}) })
 
     b0b.ready(function () {
-      s0b.use('..', {
+      s0b.use(Mesh, {
         pin: 'a:1',
         discover: {
           custom: {
@@ -595,7 +595,7 @@ describe('#mesh', function () {
 
                 s0b.close()
                 b0b.close()
-                setTimeout(done, 555)
+                setTimeout(done, 555*tmx)
               })
             })
           })
@@ -605,11 +605,11 @@ describe('#mesh', function () {
 
 
   // Tests https://github.com/senecajs/seneca-mesh/issues/11
-  it('canonical-pins', {parallel: false, timeout: 5555}, function (done) {
-    var b0 = Seneca({legacy:{transport:false}}).test(done).use('..', {base: true})
-    var s0 = Seneca({legacy:{transport:false}}).test(done).use('..', {pin: 'a:1,b:2;c:3'})
-    var s1 = Seneca({legacy:{transport:false}}).test(done).use('..', {pin: 'c:3;b:2,a:1'})
-    var c0 = Seneca({legacy:{transport:false}}).test(done).use('..')
+  it('canonical-pins', {parallel: false, timeout: 5555*tmx}, function (done) {
+    var b0 = Seneca({legacy:{transport:false}}).test(done).use(Mesh, {base: true})
+    var s0 = Seneca({legacy:{transport:false}}).test(done).use(Mesh, {pin: 'a:1,b:2;c:3'})
+    var s1 = Seneca({legacy:{transport:false}}).test(done).use(Mesh, {pin: 'c:3;b:2,a:1'})
+    var c0 = Seneca({legacy:{transport:false}}).test(done).use(Mesh)
 
     s0.add('a:1,b:2', function (msg, reply) { reply({s: 0, x: msg.x}) })
     s1.add('a:1,b:2', function (msg, reply) { reply({s: 1, x: msg.x}) })
@@ -654,7 +654,7 @@ describe('#mesh', function () {
 
           done()
         })
-    }, 2555)
+    }, 2555*tmx)
   })
 })
 
@@ -688,4 +688,24 @@ function make_rif () {
   }
 
   return Rif(netif)
+}
+
+
+function close() {
+  var fin = arguments[0]
+  var delay = arguments[1]
+  var instances = Array.prototype.slice.call(arguments,2)
+
+  close_instance(0)
+  function close_instance(index) {
+    if(instances.length <= index) {
+      setTimeout(fin,delay*tmx)
+    }
+    else {
+      instances[index].close(function(err) {
+        if(err) return fin(err)
+        close_instance(index+1)
+      })
+    }
+  }
 }

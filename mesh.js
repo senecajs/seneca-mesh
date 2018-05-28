@@ -1,7 +1,4 @@
-/*
-  MIT License,
-  Copyright (c) 2015-2017, Richard Rodger and other contributors.
-*/
+/* MIT License. Copyright © 2015-2018, Richard Rodger and other contributors. */
 
 'use strict'
 
@@ -37,6 +34,10 @@ var optioner = Optioner({
 
   jointime: 111, // join and wait for network details
 
+  // Explicitly allow overrides of specific local patterns. This is not supported
+  // by default to prevent infinite loops between subling services with same pins.
+  overrides: {},
+  
   discover: {
     defined: {
       active: true
@@ -84,13 +85,13 @@ var optioner = Optioner({
   sneeze: null
 })
 
+
 function mesh(options) {
   var seneca = this
 
   seneca.depends('balance-client')
 
-  optioner(options, function(err, options) {
-    if (err) throw err
+  var opts = optioner.check(options)
 
     var closed = false
 
@@ -106,26 +107,27 @@ function mesh(options) {
 
     // fixed network interface specification, as per format of
     // require('os').networkInterfaces. Merged with and overrides same.
-    var rif = Rif(options.netif)
+    var rif = Rif(opts.netif)
 
-    // options.base is deprecated
-    var isbase = !!(options.isbase || options.base)
-    options.isbase = isbase
+    // opts.base is deprecated
+    var isbase = !!(opts.isbase || opts.base)
+    opts.isbase = isbase
 
-    var pin = options.pin || options.pins
+    var pin = opts.pin || opts.pins
 
     if (isbase) {
-      pin = pin || 'role:mesh,base:true'
+      pin = Array.isArray(pin) ? pin : [].concat('role:mesh,base:'+seneca.id)
+      //pin = ['']
     }
 
-    options.host = intern.resolve_interface(options.host, rif)
-    var tag = options.tag
+    opts.host = intern.resolve_interface(opts.host, rif)
+    var tag = opts.tag
 
-    var listen = options.listen || [
-      { pin: pin, model: options.model || 'consume' }
+    var listen = opts.listen || [
+      { pin: pin, model: opts.model || 'consume' }
     ]
 
-    var balance_client_opts = options.balance_client || {}
+    var balance_client_opts = opts.balance_client || {}
     seneca.use('balance-client$mesh~' + mid, balance_client_opts)
 
     seneca.add('init:mesh', init)
@@ -133,27 +135,27 @@ function mesh(options) {
     function init(msg, init_done) {
       var seneca = this
 
-      intern.find_bases(seneca, options, rif, function(found_bases) {
+      intern.find_bases(seneca, opts, rif, function(found_bases) {
         bases = found_bases
 
         seneca.log.debug({
           kind: 'mesh',
-          host: options.host,
-          port: options.port,
+          host: opts.host,
+          port: opts.port,
           bases: bases,
-          options: options
+          opts: opts
         })
 
-        var sneeze_opts = options.sneeze || {}
+        var sneeze_opts = opts.sneeze || {}
 
         sneeze_opts.bases = bases
         sneeze_opts.isbase = isbase
-        sneeze_opts.port = options.port || void 0
-        sneeze_opts.host = options.host || void 0
+        sneeze_opts.port = opts.port || void 0
+        sneeze_opts.host = opts.host || void 0
         sneeze_opts.identifier = seneca.id
 
         sneeze_opts.monitor = sneeze_opts.monitor || {
-          active: !!options.monitor
+          active: !!opts.monitor
         }
 
         sneeze_opts.tag = void 0 !== sneeze_opts.tag
@@ -163,14 +165,14 @@ function mesh(options) {
               : 'seneca~mesh'
 
         seneca.add('role:transport,cmd:listen', 
-                   intern.make_transport_listen(options, join, listen, init_done))
+                   intern.make_transport_listen(opts, join, listen, init_done))
 
         // call seneca.listen as a convenience
         // subsequent seneca.listen calls will still publish to network
-        if (options.auto) {
+        if (opts.auto) {
           _.each(listen, function(listen_opts) {
-            if (options.host && null == listen_opts.host) {
-              listen_opts.host = options.host
+            if (opts.host && null == listen_opts.host) {
+              listen_opts.host = opts.host
             }
 
             if ('@' === (listen_opts.host && listen_opts.host[0])) {
@@ -233,7 +235,7 @@ function mesh(options) {
             var members = []
 
             _.each(sneeze.members(), function(member) {
-              var m = options.make_entry(member)
+              var m = opts.make_entry(member)
               members.push(void 0 === m ? intern.default_make_entry(member) : m)
             })
 
@@ -280,12 +282,14 @@ function mesh(options) {
                 return
               }
 
-              // TODO: how to handle local override?
-              var actmeta = client_instance.find(pin)
-              var ignore_client = !!(actmeta && !actmeta.client)
+              var actmeta = client_instance.find(pin, {exact: true})
 
-              if (ignore_client) {
-                return
+              if(actmeta) {
+                // Prevent infinite loops between sibling services by
+                // not supporting local overrides unless explicitly granted.
+                if(!actmeta.client && !opts.overrides[pin]) {
+                  return
+                }
               }
 
               target_map[pin_config.id] = true
@@ -339,13 +343,13 @@ function mesh(options) {
         }
       })
     }
-  })
 }
+
 
 
 function make_intern() {
   return {
-    make_transport_listen: function (options, join, listen, init_done) {
+    make_transport_listen: function (opts, join, listen, init_done) {
       var listen_count = 0
       var last_mesh_listen_err = null
 
@@ -372,7 +376,7 @@ function make_intern() {
               if (listen.length === listen_count) {
                 setTimeout(function(){
                   init_done(last_mesh_listen_err)
-                },options.jointime)
+                },opts.jointime)
               }
             })
           } else {
@@ -398,11 +402,11 @@ function make_intern() {
       return out
     },
 
-    find_bases: function(seneca, options, rif, done) {
+    find_bases: function(seneca, opts, rif, done) {
       var bases = []
 
-      intern.addbase_funcmap.custom = function(seneca, options, bases, next) {
-        options.discover.custom.find(seneca, options, bases, function(
+      intern.addbase_funcmap.custom = function(seneca, opts, bases, next) {
+        opts.discover.custom.find(seneca, opts, bases, function(
           add,
           stop
         ) {
@@ -421,31 +425,31 @@ function make_intern() {
 
       function next(add, stop) {
         bases = bases.concat(add || [])
-        if (stop && options.discover.stop) abI = addbases.length
+        if (stop && opts.discover.stop) abI = addbases.length
 
         do {
           ++abI
         } while (
-          abI < addbases.length && !options.discover[addbases[abI]].active
+          abI < addbases.length && !opts.discover[addbases[abI]].active
         )
 
         addbase = addbases[abI]
 
         if (null == addbase) {
-          bases = intern.resolve_bases(bases, options, rif)
+          bases = intern.resolve_bases(bases, opts, rif)
 
           return done(bases)
         }
 
-        intern.addbase_funcmap[addbase](seneca, options, bases, next)
+        intern.addbase_funcmap[addbase](seneca, opts, bases, next)
       }
     },
 
     addbase_funcmap: {
-      defined: function(seneca, options, bases, next) {
-        var add = (options.sneeze || {}).bases ||
-              options.bases ||
-              options.remotes || []
+      defined: function(seneca, opts, bases, next) {
+        var add = (opts.sneeze || {}).bases ||
+              opts.bases ||
+              opts.remotes || []
 
         add = add.filter(function(base) {
           return base && 0 < base.length
@@ -455,9 +459,9 @@ function make_intern() {
       },
 
       // order significant! depends on defined as uses bases.length
-      guess: function(seneca, options, bases, next) {
+      guess: function(seneca, opts, bases, next) {
         var add = []
-        var host = options.host
+        var host = opts.host
 
         if (0 === bases.length) {
           if (null != host && host !== DEFAULT_HOST) {
@@ -469,26 +473,26 @@ function make_intern() {
         next(add)
       },
 
-      multicast: function(seneca, options, bases, next) {
+      multicast: function(seneca, opts, bases, next) {
         var add = []
-        var opts = options.discover.multicast
+        var mc_opts = opts.discover.multicast
 
         // Determine broadcast address using subnetmask
-        if (_.isString(opts.address) && '/' === opts.address[0]) {
-          var netprefix = parseInt(opts.address.substring(1), 10)
-          opts.address = Ip.subnet(
-            options.host,
+        if (_.isString(mc_opts.address) && '/' === mc_opts.address[0]) {
+          var netprefix = parseInt(mc_opts.address.substring(1), 10)
+          mc_opts.address = Ip.subnet(
+            opts.host,
             Ip.fromPrefixLen(netprefix)
           ).broadcastAddress
         }
 
         var d = Discover({
-          broadcast: opts.address,
+          broadcast: mc_opts.address,
           advertisement: {
             seneca_mesh: true,
-            isbase: options.isbase,
-            host: options.host || DEFAULT_HOST,
-            port: options.port || DEFAULT_PORT
+            isbase: opts.isbase,
+            host: opts.host || DEFAULT_HOST,
+            port: opts.port || DEFAULT_PORT
           }
         })
 
@@ -503,9 +507,9 @@ function make_intern() {
             }
           })
 
-          if (0 < count || opts.max_search < findCount) {
+          if (0 < count || mc_opts.max_search < findCount) {
             // only bases should keep broadcasting
-            if (!options.isbase) {
+            if (!opts.isbase) {
               d.stop()
             }
 
@@ -515,17 +519,17 @@ function make_intern() {
           }
 
           findCount++
-        }, opts.search_interval)
+        }, mc_opts.search_interval)
       },
 
-      registry: function(seneca, options, bases, next) {
+      registry: function(seneca, opts, bases, next) {
         var first = true
 
         var base_addr =
-              (options.host || DEFAULT_HOST) + ':' + (options.port || DEFAULT_PORT)
+              (opts.host || DEFAULT_HOST) + ':' + (opts.port || DEFAULT_PORT)
 
-        if (options.isbase) {
-          var ri = options.discover.registry.refresh_interval
+        if (opts.isbase) {
+          var ri = opts.discover.registry.refresh_interval
           ri = ri + ri * (Math.random() - 0.5)
           setInterval(getset_bases, ri)
         }
@@ -535,7 +539,7 @@ function make_intern() {
         function getset_bases() {
           seneca.act(
             'role:registry,cmd:get,default$:{}',
-            { key: 'seneca-mesh/' + (options.tag || '-') + '/bases' },
+            { key: 'seneca-mesh/' + (opts.tag || '-') + '/bases' },
             function(err, out) {
               if (err) return
 
@@ -549,10 +553,10 @@ function make_intern() {
                 next(add, 0 < add.length)
               }
 
-              if (options.isbase) {
+              if (opts.isbase) {
                 var prune_first =
                       Math.random() <
-                      options.discover.registry.prune_first_probability
+                      opts.discover.registry.prune_first_probability
 
                 if (prune_first || -1 === add.indexOf(base_addr)) {
                   add.push(base_addr)
@@ -560,7 +564,7 @@ function make_intern() {
 
                   if (
                     prune_first &&
-                      options.discover.registry.prune_bound < add.length
+                      opts.discover.registry.prune_bound < add.length
                   ) {
                     add.shift()
                   }
@@ -568,7 +572,7 @@ function make_intern() {
                   var val = add.join(',')
 
                   seneca.act('role:registry,cmd:set,default$:{}', {
-                    key: 'seneca-mesh/' + (options.tag || '-') + '/bases',
+                    key: 'seneca-mesh/' + (opts.tag || '-') + '/bases',
                     value: val
                   })
                 }
@@ -598,10 +602,10 @@ function make_intern() {
       return entry
     },
 
-    resolve_bases: function(orig_bases, options, rif) {
-      options = options || {}
+    resolve_bases: function(orig_bases, opts, rif) {
+      opts = opts || {}
 
-      var host = options.host
+      var host = opts.host
 
       // remove empties
       var bases = (orig_bases || []).filter(function(base) {

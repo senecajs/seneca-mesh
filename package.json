@@ -1,6 +1,6 @@
 {
   "name": "seneca-mesh",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Mesh your Seneca.js microservices together - no more service discovery!",
   "main": "mesh.js",
   "license": "MIT",
@@ -15,10 +15,9 @@
   ],
   "scripts": {
     "test": "lab test/*.test.js -r console -L -t 80 -c -v",
-    "annotate": "docco mesh.js -o docs/annotated",
     "lint": "lab *.js -dL",
     "coveralls": "lab -s -P test -r lcov | coveralls",
-    "coverage": "lab -v -P test -L -t 78 -r html > docs/coverage.html",
+    "coverage": "lab -v -P test -L -t 78 -r html > coverage.html",
     "prettier": "prettier --write --no-semi --single-quote mesh.js"
   },
   "repository": {
@@ -45,19 +44,18 @@
     "node-uuid": "1.4.7",
     "optioner": "1.1",
     "rif": "0.3",
-    "sneeze": "0.8"
+    "sneeze": "0.9"
   },
   "devDependencies": {
-    "chairo": "2",
     "color": "0",
     "coveralls": "3",
     "hapi": "16",
     "lab": "14",
     "code": "4",
-    "seneca-repl": "1",
-    "seneca": "plugin",
-    "seneca-balance-client": "0",
-    "seneca-consul-registry": "0",
+    "seneca-repl": "1.2",
+    "seneca": "github:senecajs/seneca",
+    "seneca-balance-client": "0.7",
+    "seneca-consul-registry": "0.2",
     "prettier": "1"
   },
   "files": [

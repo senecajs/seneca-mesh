@@ -37,28 +37,28 @@
     "node": ">=4.0.0"
   },
   "dependencies": {
-    "ip": "1.1.3",
-    "jsonic": "0.3.0",
-    "lodash": "4.17.4",
-    "nid": "0.3.2",
-    "node-discover": "0.6.0",
-    "optioner": "0.8.0",
-    "rif": "0.3.0",
-    "sneeze": "0.8.0"
+    "ip": "1.1",
+    "jsonic": "0.3",
+    "lodash": "4.17",
+    "nid": "0.3",
+    "node-discover": "0.6",
+    "node-uuid": "1.4.7",
+    "optioner": "1.1",
+    "rif": "0.3",
+    "sneeze": "0.8"
   },
   "devDependencies": {
-    "chairo": "2.2.1",
-    "color": "0.11.3",
-    "coveralls": "2.13.x",
-    "docco": "0.7.x",
-    "hapi": "15.0.2",
-    "lab": "14.0.x",
-    "code": "4.1.x",
-    "seneca-repl": "1.0.x",
+    "chairo": "2",
+    "color": "0",
+    "coveralls": "3",
+    "hapi": "16",
+    "lab": "14",
+    "code": "4",
+    "seneca-repl": "1",
     "seneca": "plugin",
-    "seneca-balance-client": "0.6.1",
-    "seneca-consul-registry": "0.1.0",
-    "prettier": "1.4.x"
+    "seneca-balance-client": "0",
+    "seneca-consul-registry": "0",
+    "prettier": "1"
   },
   "files": [
     "README.md",

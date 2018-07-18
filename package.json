@@ -14,7 +14,7 @@
     "Mihai Dima (https://github.com/mihaidma)"
   ],
   "scripts": {
-    "test": "lab test/*.test.js -r console -L -t 80 -c -v",
+    "test": "lab test/*.test.js -r console -L -t 80 -c -v -I URL,URLSearchParams",
     "lint": "lab *.js -dL",
     "coveralls": "lab -s -P test -r lcov | coveralls",
     "coverage": "lab -v -P test -L -t 78 -r html > coverage.html",
@@ -53,7 +53,7 @@
     "lab": "14",
     "code": "4",
     "seneca-repl": "1.2",
-    "seneca": "github:senecajs/seneca",
+    "seneca": "plugin",
     "seneca-balance-client": "0.7",
     "seneca-consul-registry": "0.2",
     "prettier": "1"

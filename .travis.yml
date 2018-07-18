@@ -9,9 +9,12 @@ node_js:
   - "4"
   
 env:
-  - SENECA_VER=seneca@3.x.x
-  - SENECA_VER=seneca@plugin
-  - SENECA_VER=senecajs/seneca
+  global:
+    - TIMEOUT_MULTIPLIER=8
+  matrix:
+    - SENECA_VER=seneca@3.x.x
+    - SENECA_VER=seneca@plugin
+    - SENECA_VER=senecajs/seneca
 
 before_script:
   - npm uninstall seneca

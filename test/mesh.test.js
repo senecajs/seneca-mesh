@@ -14,7 +14,7 @@ var Rif = require('rif')
 
 var lab = exports.lab = Lab.script()
 var describe = lab.describe
-var it = lab.it
+var it = make_it(lab)
 var expect = Code.expect
 
 var tmx = parseInt(process.env.TIMEOUT_MULTIPLIER || 1, 10)
@@ -229,7 +229,7 @@ describe('#mesh', function () {
     })
   })
 
-  it('happy', {parallel: false, timeout: 5555*tmx}, function (fin) {
+  it('happy', {parallel: false, timeout: 9999*tmx}, function (fin) {
     var b0, s0, s1, c0
 
     b0 =
@@ -294,7 +294,7 @@ describe('#mesh', function () {
                 })
               
                 .close(s1.close.bind(s1,b0.close.bind(
-                  b0, setTimeout.bind(this, fin, 555*tmx))))},1555*tmx))
+                  b0, setTimeout.bind(this, fin, 555*tmx))))},3333*tmx))
           })
         })
     }))))
@@ -331,7 +331,7 @@ describe('#mesh', function () {
         s1.use(Mesh, {pin: 'a:1', model: 'actor', discover: test_discover, sneeze: {silent: true}}).ready(function () {
           s2.use(Mesh, {pin: 'a:1', model: 'actor', discover: test_discover, sneeze: {silent: true}}).ready(function () {
             c0.use(Mesh, {discover: test_discover, sneeze: {silent: true}}).ready(function () {
-              c1.use(Mesh, {discover: test_discover, sneeze: {silent: true}}).ready(setTimeout.bind(null, do_topology, 1222))
+              c1.use(Mesh, {discover: test_discover, sneeze: {silent: true}}).ready(setTimeout.bind(null, do_topology, 2222*tmx))
             }) }) }) }) })
 
     function do_topology () {
@@ -359,15 +359,10 @@ describe('#mesh', function () {
     }
 
     function do_actors (c0map, c1map) {
-      // var i = 0
-      // console.log(i++,'c0',c0map['a:1'].index,c0map.x,'c1',c1map['a:1'].index,c1map.x)
-
       c0.act('a:1,x:0', function (e, o) {
-        // console.log(i++,'c0',c0map['a:1'].index,'c1',c1map['a:1'].index)
         Assert.equal(1, o.x)
 
         c1.act('a:1,x:0', function (e, o) {
-          // console.log(i++,'c0',c0map['a:1'].index,'c1',c1map['a:1'].index)
           Assert.equal(1, o.x)
 
           c0.act('a:1,x:0', function (e, o) {
@@ -458,7 +453,7 @@ describe('#mesh', function () {
       s2.close()
       s0.close()
       b0.close()
-      setTimeout(done, 1555*tmx)
+      setTimeout(done, 2222*tmx)
     }
   })
 
@@ -528,7 +523,7 @@ describe('#mesh', function () {
 
                 close()
               }) })
-          }, 111)
+          }, 555*tmx)
         }) })
     }
 
@@ -607,6 +602,8 @@ describe('#mesh', function () {
   // Tests https://github.com/senecajs/seneca-mesh/issues/11
   it('canonical-pins', {parallel: false, timeout: 5555*tmx}, function (done) {
     var b0 = Seneca({legacy:{transport:false}}).test(done).use(Mesh, {base: true})
+
+
     var s0 = Seneca({legacy:{transport:false}}).test(done).use(Mesh, {pin: 'a:1,b:2;c:3'})
     var s1 = Seneca({legacy:{transport:false}}).test(done).use(Mesh, {pin: 'c:3;b:2,a:1'})
     var c0 = Seneca({legacy:{transport:false}}).test(done).use(Mesh)
@@ -616,7 +613,7 @@ describe('#mesh', function () {
 
     s0.add('c:3', function (msg, reply) { reply({s: 0, y: msg.y}) })
     s1.add('c:3', function (msg, reply) { reply({s: 1, y: msg.y}) })
-
+    
     setTimeout(function () {
       c0
         .gate()
@@ -656,6 +653,7 @@ describe('#mesh', function () {
         })
     }, 2555*tmx)
   })
+
 })
 
 
@@ -707,5 +705,23 @@ function close() {
         close_instance(index+1)
       })
     }
+  }
+}
+
+
+function make_it(lab) {
+  return function it(name, opts, func) {
+    if ('function' === typeof opts) {
+      func = opts
+      opts = {}
+    }
+
+    lab.it(
+      name,
+      opts,
+      Util.promisify(function(x, fin) {
+        func(fin)
+      })
+    )
   }
 }

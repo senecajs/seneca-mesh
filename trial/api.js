@@ -9,7 +9,6 @@ var REGISTRY = JSON.parse(process.env.REGISTRY || '{"active":false}')
 var Seneca = require('seneca')
 
 var Hapi = require('hapi')
-var Chairo = require('chairo')
 
 var seneca = Seneca({ tag: 'api' })
 
@@ -41,18 +40,11 @@ seneca
         port: PORT
       })
 
-      server.register({
-        register: Chairo,
-        options: {
-          seneca: seneca
-        }
-      })
-
       server.route({
         method: 'GET',
         path: '/api/{srv}',
         handler: function(req, reply) {
-          server.seneca.act(req.params.srv + ':1', { v: req.query.v }, function(
+          seneca.act(req.params.srv + ':1', { v: req.query.v }, function(
             err,
             out
           ) {

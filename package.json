@@ -47,16 +47,16 @@
     "sneeze": "0.9"
   },
   "devDependencies": {
+    "code": "4",
     "color": "0",
     "coveralls": "3",
     "hapi": "16",
     "lab": "14",
-    "code": "4",
-    "seneca-repl": "1.2",
-    "seneca": "plugin",
+    "prettier": "1",
+    "seneca": "^3.8.2",
     "seneca-balance-client": "0.7",
     "seneca-consul-registry": "0.2",
-    "prettier": "1"
+    "seneca-repl": "1.2"
   },
   "files": [
     "README.md",

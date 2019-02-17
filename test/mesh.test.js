@@ -205,7 +205,7 @@ describe('#mesh', function () {
     s0b =
       Seneca({tag: 's0b', log: 'silent', debug: {short_logs: true}})
       .error(done)
-      .add('a:1', function (msg) { this.good({x: msg.i}) })
+      .add('a:1', function (msg, reply) { reply({x: msg.i}) })
 
     b0b.ready(function () {
       s0b.use(Mesh, {pin: 'a:1', discover: test_discover}).ready(function () {
@@ -309,15 +309,15 @@ describe('#mesh', function () {
 
     s0 = Seneca({tag: 's0', log: 'test', debug: {short_logs: true}})
       .error(done)
-      .add('a:1', function (m) { this.good({x: m.x + 1}) })
+      .add('a:1', function (msg, reply) { reply({x: msg.x + 1}) })
 
     s1 = Seneca({tag: 's1', log: 'test', debug: {short_logs: true}})
       .error(done)
-      .add('a:1', function (m) { this.good({x: m.x + 2}) })
+      .add('a:1', function (msg, reply) { reply({x: msg.x + 2}) })
 
     s2 = Seneca({tag: 's2', log: 'test', debug: {short_logs: true}})
       .error(done)
-      .add('a:1', function (m) { this.good({x: m.x + 3}) })
+      .add('a:1', function (msg, reply) { reply({x: msg.x + 3}) })
 
     c0 = Seneca({tag: 'c0', log: 'test', debug: {short_logs: true}})
       .error(done)
@@ -475,13 +475,13 @@ describe('#mesh', function () {
 
     s0 = Seneca({tag: 's0', log: 'test'})
       .error(done)
-      .add('a:1', function (m) { this.good({x: m.x + (++s0x)}) })
-      .add('b:1', function (m) { s0y.push(m.y); this.good() })
+      .add('a:1', function (msg, reply) { reply({x: msg.x + (++s0x)}) })
+      .add('b:1', function (msg, reply) { s0y.push(msg.y); reply() })
 
     s1 = Seneca({tag: 's1', log: 'test'})
       .error(done)
-      .add('b:1', function (m) { s1y.push(m.y); this.good() })
-      .add('c:1', function (m) { this.good({z: m.z + (++s1z)}) })
+      .add('b:1', function (msg, reply) { s1y.push(msg.y); reply() })
+      .add('c:1', function (msg, reply) { reply({z: msg.z + (++s1z)}) })
 
     c0 = Seneca({tag: 'c0', log: 'test'})
       .error(done)
@@ -569,7 +569,7 @@ describe('#mesh', function () {
     s0b =
       Seneca({tag: 's0b', log: 'silent', debug: {short_logs: true}})
       .error(done)
-      .add('a:1', function (msg) { this.good({x: msg.i}) })
+      .add('a:1', function (msg, reply) { reply({x: msg.i}) })
 
     b0b.ready(function () {
       s0b.use(Mesh, {

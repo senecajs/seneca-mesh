@@ -1,6 +1,6 @@
 {
   "name": "seneca-mesh",
-  "version": "0.12.0",
+  "version": "1.0.0",
   "description": "Mesh your Seneca.js microservices together - no more service discovery!",
   "main": "mesh.js",
   "license": "MIT",

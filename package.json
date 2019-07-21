@@ -40,7 +40,7 @@
   "dependencies": {
     "ip": "^1.1.5",
     "jsonic": "^0.3.1",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.15",
     "nid": "^0.3.2",
     "node-discover": "^0.6.2",
     "optioner": "^1.1.0",
@@ -50,11 +50,11 @@
   "devDependencies": {
     "code": "^4.1.0",
     "color": "^0.11.4",
-    "coveralls": "^3.0.2",
+    "coveralls": "^3.0.5",
     "hapi": "^18.1.0",
     "lab": "^18.0.2",
-    "prettier": "^1.16.4",
-    "seneca": "^3.8.2",
+    "prettier": "^1.18.2",
+    "seneca": "^3.11.0",
     "seneca-balance-client": "^0.7.0",
     "seneca-consul-registry": "^0.2.0",
     "seneca-repl": "^1.2.0"

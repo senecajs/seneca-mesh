@@ -39,7 +39,7 @@ var optioner = Optioner({
 
   // Explicitly allow overrides of specific local patterns. This is not supported
   // by default to prevent infinite loops between subling services with same pins.
-  overrides: {},
+  override: false,
 
   discover: {
     defined: {
@@ -287,23 +287,34 @@ function mesh(options) {
 
             var actmeta = client_instance.find(pin, { exact: true })
 
+            var override =
+                (true === opts.override ||
+                 (Array.isArray(opts.override) && opts.override.includes(pin)))
+
+            
             if (actmeta) {
               // Prevent infinite loops between sibling services by
               // not supporting local overrides unless explicitly granted.
-              if (!actmeta.client && !opts.overrides[pin]) {
+              if (!actmeta.client && !override)
+              {
                 return
               }
             }
 
             target_map[pin_config.id] = true
 
+            pin_config.override = override
+            
             if (!has_balance_client) {
               // no balancer for this pin, so add one
-              client_instance.client({
+              var balance_client_config = {
                 type: 'balance',
                 pin: pin,
-                model: config.model
-              })
+                model: config.model,
+                override: override 
+              }
+              
+              client_instance.client(balance_client_config)
             }
 
             client_instance.act('role:transport,type:balance,add:client', {

@@ -7,9 +7,11 @@ var PORT = process.env.PORT
 var BROADCAST = process.env.BROADCAST
 var REGISTRY = JSON.parse(process.env.REGISTRY || '{"active":false}')
 
-require('seneca')({ tag: 'b0' })
+require('seneca')({ tag: 'b0', legacy: {transport: false} })
+  .test()
   .use('consul-registry', REGISTRY || {})
   .use('..', {
+    monitor: true,
     isbase: true,
     host: HOST,
     port: PORT,
@@ -22,6 +24,6 @@ require('seneca')({ tag: 'b0' })
     },
     dumpnet: false,
     sneeze: {
-      silent: false
+      silent: true
     }
   })

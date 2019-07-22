@@ -6,7 +6,7 @@ var Assert = require('assert')
 var Util = require('util')
 
 var Lab = require('lab')
-var Code = require('code')
+var Code = require('@hapi/code')
 var Seneca = require('seneca')
 var Rif = require('rif')
 
@@ -103,7 +103,7 @@ describe('#mesh', function() {
   })
 
   it('intern.make_pin_config', function(done) {
-    var si = Seneca({ log: 'silent', legacy: {transport: false} })
+    var si = Seneca({ log: 'silent', legacy: { transport: false } })
 
     expect(
       intern.make_pin_config(si, { identifier$: 'i0' }, 'a:1', {
@@ -131,7 +131,7 @@ describe('#mesh', function() {
   })
 
   it('intern.resolve_pins', function(done) {
-    var si = Seneca({ log: 'silent', legacy: {transport: false} })
+    var si = Seneca({ log: 'silent', legacy: { transport: false } })
 
     expect(intern.resolve_pins(si, { pin: 'a:1' })).to.equal(['a:1'])
 
@@ -193,7 +193,7 @@ describe('#mesh', function() {
   })
 
   it('base', { timeout: 5555 * tmx, parallel: false }, function(done) {
-    Seneca({ tag: 'b0a', legacy: {transport: false} })
+    Seneca({ tag: 'b0a', legacy: { transport: false } })
       .test(done)
       .use(Mesh, { isbase: true, discover: test_discover })
       .ready(function() {
@@ -206,11 +206,11 @@ describe('#mesh', function() {
   ) {
     var b0b, s0b
 
-    b0b = Seneca({ tag: 'b0b', legacy: {transport: false} })
+    b0b = Seneca({ tag: 'b0b', legacy: { transport: false } })
       .test(done)
       .use(Mesh, { isbase: true, discover: test_discover })
 
-    s0b = Seneca({ tag: 's0b', legacy: {transport: false} })
+    s0b = Seneca({ tag: 's0b', legacy: { transport: false } })
       .test(done)
       .add('a:1', function(msg, reply) {
         reply({ x: msg.i })
@@ -249,7 +249,7 @@ describe('#mesh', function() {
   it('happy', { parallel: false, timeout: 9999 * tmx }, function(fin) {
     var b0, s0, s1, c0
 
-    b0 = Seneca({ id$: 'b0', legacy: {transport: false} })
+    b0 = Seneca({ id$: 'b0', legacy: { transport: false } })
       .test(fin)
       .use(Mesh, {
         base: true,
@@ -257,7 +257,7 @@ describe('#mesh', function() {
         sneeze: { silent: true }
       })
 
-    s0 = Seneca({ id$: 's0', legacy: {transport: false} })
+    s0 = Seneca({ id$: 's0', legacy: { transport: false } })
       .test(fin)
       .use(Mesh, {
         pin: 'a:1',
@@ -268,7 +268,7 @@ describe('#mesh', function() {
         r({ x: 0 })
       })
 
-    s1 = Seneca({ id$: 's1', legacy: {transport: false} })
+    s1 = Seneca({ id$: 's1', legacy: { transport: false } })
       .test(fin)
       .use(Mesh, {
         pin: 'a:1',
@@ -282,7 +282,7 @@ describe('#mesh', function() {
         this.prior(m, r)
       })
 
-    c0 = Seneca({ id$: 'c0', legacy: {transport: false} })
+    c0 = Seneca({ id$: 'c0', legacy: { transport: false } })
       .test(fin)
       .use(Mesh, { discover: test_discover, sneeze: { silent: true } })
 
@@ -353,35 +353,29 @@ describe('#mesh', function() {
   it('many-actors', { parallel: false, timeout: 19999 * tmx }, function(done) {
     var b0, s0, s1, s2, c0, c1
 
-    b0 = Seneca({ tag: 'b0', legacy: {transport: false}}).test(
-      done
-    )
+    b0 = Seneca({ tag: 'b0', legacy: { transport: false } }).test(done)
 
-    s0 = Seneca({ tag: 's0', legacy: {transport: false} })
+    s0 = Seneca({ tag: 's0', legacy: { transport: false } })
       .test(done)
       .add('a:1', function(msg, reply) {
         reply({ x: msg.x + 1 })
       })
 
-    s1 = Seneca({ tag: 's1', legacy: {transport: false} })
+    s1 = Seneca({ tag: 's1', legacy: { transport: false } })
       .test(done)
       .add('a:1', function(msg, reply) {
         reply({ x: msg.x + 2 })
       })
 
-    s2 = Seneca({ tag: 's2', legacy: {transport: false}})
+    s2 = Seneca({ tag: 's2', legacy: { transport: false } })
       .test(done)
       .add('a:1', function(msg, reply) {
         reply({ x: msg.x + 3 })
       })
 
-    c0 = Seneca({ tag: 'c0', legacy: {transport: false} }).test(
-      done
-    )
+    c0 = Seneca({ tag: 'c0', legacy: { transport: false } }).test(done)
 
-    c1 = Seneca({ tag: 'c1', legacy: {transport: false} }).test(
-      done
-    )
+    c1 = Seneca({ tag: 'c1', legacy: { transport: false } }).test(done)
 
     b0.use(Mesh, {
       isbase: true,
@@ -676,7 +670,7 @@ describe('#mesh', function() {
       next(['127.0.0.1:39901'])
     }
 
-    b0b = Seneca({ tag: 'b0b', legacy: {transport: false}})
+    b0b = Seneca({ tag: 'b0b', legacy: { transport: false } })
       .test(done)
       .use(Mesh, {
         isbase: true,
@@ -692,7 +686,7 @@ describe('#mesh', function() {
         }
       })
 
-    s0b = Seneca({ tag: 's0b', legacy: {transport: false} })
+    s0b = Seneca({ tag: 's0b', legacy: { transport: false } })
       .test(done)
       .add('a:1', function(msg, reply) {
         reply({ x: msg.i })

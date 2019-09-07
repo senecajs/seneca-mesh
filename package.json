@@ -1,6 +1,6 @@
 {
   "name": "seneca-mesh",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Mesh your Seneca.js microservices together - no more service discovery!",
   "main": "mesh.js",
   "license": "MIT",
@@ -38,26 +38,27 @@
     "node": ">=8"
   },
   "dependencies": {
-    "@hapi/code": "^5.3.1",
+    "@hapi/code": "^6.0.0",
     "ip": "^1.1.5",
     "jsonic": "^0.3.1",
     "lodash": "^4.17.15",
     "nid": "^0.3.2",
-    "node-discover": "^0.6.2",
-    "optioner": "^4.0.0",
+    "node-discover": "^1.0.0",
+    "optioner": "^4.1.2",
     "rif": "^0.3.0",
-    "sneeze": "^1.0.0"
+    "sneeze": "^1.1.0"
   },
   "devDependencies": {
-    "color": "^0.11.4",
-    "coveralls": "^3.0.5",
-    "hapi": "^18.1.0",
-    "lab": "^18.0.2",
+    "@hapi/hapi": "^18.3.2",
+    "@hapi/lab": "^20.2.2",
+    "@seneca/repl": "^1.5.0",
+    "acorn": "^7.0.0",
+    "color": "^3.1.2",
+    "coveralls": "^3.0.6",
     "prettier": "^1.18.2",
     "seneca": "plugin",
-    "seneca-balance-client": "^1.0.0",
-    "seneca-consul-registry": "^0.2.0",
-    "seneca-repl": "^1.2.0"
+    "seneca-balance-client": "^1.1.0",
+    "seneca-consul-registry": "^0.2.0"
   },
   "files": [
     "README.md",

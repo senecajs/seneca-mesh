@@ -5,7 +5,7 @@
 var Assert = require('assert')
 var Util = require('util')
 
-var Lab = require('lab')
+var Lab = require('@hapi/lab')
 var Code = require('@hapi/code')
 var Seneca = require('seneca')
 var Rif = require('rif')

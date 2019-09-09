@@ -1,6 +1,6 @@
 {
   "name": "seneca-mesh",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Mesh your Seneca.js microservices together - no more service discovery!",
   "main": "mesh.js",
   "license": "MIT",
@@ -20,7 +20,7 @@
     "prettier": "prettier --write --no-semi --single-quote entity.js lib/*.js test/*.js",
     "clean-npm": "rm -rf node_modules package-lock.json",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
-    "repo-publish": "npm run prettier && npm test && npm run repo-tag && npm publish --access public"
+    "repo-publish": "npm run prettier && npm test && npm run repo-tag && npm publish --access public --registry=http://registry.npmjs.org"
   },
   "repository": {
     "type": "git",
@@ -46,18 +46,18 @@
     "node-discover": "^1.0.0",
     "optioner": "^4.1.2",
     "rif": "^0.3.0",
-    "sneeze": "^1.1.0"
+    "sneeze": "^1.1.1"
   },
   "devDependencies": {
     "@hapi/hapi": "^18.3.2",
     "@hapi/lab": "^20.2.2",
-    "@seneca/repl": "^1.5.0",
+    "@seneca/repl": "^1.5.1",
     "acorn": "^7.0.0",
     "color": "^3.1.2",
     "coveralls": "^3.0.6",
     "prettier": "^1.18.2",
     "seneca": "plugin",
-    "seneca-balance-client": "^1.1.0",
+    "seneca-balance-client": "^1.1.1",
     "seneca-consul-registry": "^0.2.0"
   },
   "files": [

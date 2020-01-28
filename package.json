@@ -18,9 +18,11 @@
     "coveralls": "lab -s -P test -r lcov -I URL,URLSearchParams | coveralls",
     "coverage": "lab -v -P test -t 80 -r html -I URL,URLSearchParams > coverage.html",
     "prettier": "prettier --write --no-semi --single-quote entity.js lib/*.js test/*.js",
-    "clean-npm": "rm -rf node_modules package-lock.json",
+    "clean": "rm -rf node_modules package-lock.json yarn.lock",
+    "reset": "npm run clean && npm i && npm test",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
-    "repo-publish": "npm run prettier && npm test && npm run repo-tag && npm publish --access public --registry=http://registry.npmjs.org"
+    "repo-publish": "npm run clean && npm i --registry http://registry.npmjs.org && npm run repo-publish-quick",
+    "repo-publish-quick": "npm run prettier && npm test && npm run repo-tag && npm publish --access public --registry=http://registry.npmjs.org"
   },
   "repository": {
     "type": "git",
@@ -38,7 +40,7 @@
     "node": ">=8"
   },
   "dependencies": {
-    "@hapi/code": "^6.0.0",
+    "@hapi/code": "^8.0.1",
     "ip": "^1.1.5",
     "jsonic": "^0.3.1",
     "lodash": "^4.17.15",

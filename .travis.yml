@@ -3,7 +3,8 @@ dist: trusty
 language: node_js
 
 node_js:
-  - "11"       
+  - "13"       
+  - "12"       
   - "10"       
   - "8"
   

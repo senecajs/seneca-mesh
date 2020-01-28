@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@hapi/hapi": "^18.3.2",
-    "@hapi/lab": "^20.2.2",
+    "@hapi/lab": "^22.0.3",
     "@seneca/repl": "^1.5.1",
     "acorn": "^7.0.0",
     "color": "^3.1.2",

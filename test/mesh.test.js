@@ -454,6 +454,7 @@ describe('#mesh', function() {
 
     function do_actors(c0map, c1map) {
       c0.act('a:1,x:0', function(e, o) {
+        //expect(e).not.exists()
         Assert.equal(1, o.x)
 
         c1.act('a:1,x:0', function(e, o) {

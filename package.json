@@ -45,7 +45,7 @@
     "lodash": "^4.17.15",
     "nid": "^0.3.2",
     "node-discover": "^1.0.0",
-    "optioner": "^4.1.2",
+    "optioner": "^5.0.0",
     "rif": "^0.3.0",
     "sneeze": "^1.1.1"
   },
@@ -58,7 +58,7 @@
     "coveralls": "^3.0.6",
     "prettier": "^1.18.2",
     "seneca": "plugin",
-    "seneca-balance-client": "^1.1.1",
+    "seneca-balance-client": "^1.2.0",
     "seneca-consul-registry": "^0.2.0"
   },
   "files": [

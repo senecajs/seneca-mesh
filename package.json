@@ -1,6 +1,6 @@
 {
   "name": "seneca-mesh",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Mesh your Seneca.js microservices together - no more service discovery!",
   "main": "mesh.js",
   "license": "MIT",
@@ -47,7 +47,7 @@
     "node-discover": "^1.0.0",
     "optioner": "^5.0.0",
     "rif": "^0.3.0",
-    "sneeze": "^1.1.1"
+    "sneeze": "^2.0.0"
   },
   "devDependencies": {
     "@hapi/code": "^8.0.1",

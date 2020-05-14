@@ -1,12 +1,10 @@
-sudo: required
-dist: trusty
 language: node_js
 
 node_js:
+  - "14"       
   - "13"       
   - "12"       
   - "10"       
-  - "8"
   
 env:
   global:

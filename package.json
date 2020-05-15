@@ -47,7 +47,7 @@
     "node-discover": "^1.1.3",
     "optioner": "^5.0.1",
     "rif": "^0.3.0",
-    "sneeze": "^2.0.0"
+    "sneeze": "^3.0.0"
   },
   "devDependencies": {
     "@hapi/code": "^8.0.1",

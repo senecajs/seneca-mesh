@@ -1,6 +1,6 @@
 {
   "name": "seneca-mesh",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Mesh your Seneca.js microservices together - no more service discovery!",
   "main": "mesh.js",
   "license": "MIT",
@@ -17,7 +17,7 @@
     "test": "lab -v -t 80 -I URL,URLSearchParams,BigUint64Array,BigInt64Array,BigInt",
     "coveralls": "lab -s -P test -r lcov -I URL,URLSearchParams | coveralls",
     "coverage": "lab -v -P test -t 80 -r html -I URL,URLSearchParams > coverage.html",
-    "prettier": "prettier --write --no-semi --single-quote entity.js lib/*.js test/*.js",
+    "prettier": "prettier --write --no-semi --single-quote *.js test/*.js",
     "clean": "rm -rf node_modules package-lock.json yarn.lock",
     "reset": "npm run clean && npm i && npm test",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",

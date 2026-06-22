@@ -20,3 +20,4 @@ coverage.html
 test/docker
 
 tmp
+package-lock.json

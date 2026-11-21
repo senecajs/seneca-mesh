@@ -1,8 +1,9 @@
 require('seneca')({tag:'base'})
+  .use('@seneca/transport')
   //.test('print')
-  .use('seneca-repl')
+  // optional REPL, not a dependency of this package:
+  // .use('@seneca/repl')
   .use('..',{
-    base:true,
-    monitor:true
+    base:true
   })
 

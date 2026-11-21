@@ -3,6 +3,7 @@ var Seneca = require('seneca')
 var Hapi = require('hapi')
 
 Seneca({tag: 'api'})
+  .use('@seneca/transport')
   .test('print')
   .use('../..')
   .ready(function () {

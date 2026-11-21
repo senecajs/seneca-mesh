@@ -1,4 +1,5 @@
 require('seneca')({tag:'a0'})
+  .use('@seneca/transport')
   //.test('print')
   .add('a:0')
   .use('..',{

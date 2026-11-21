@@ -1,6 +1,8 @@
 var Seneca = require('seneca')
 
 Seneca({tag: 'client', log: 'silent'})
+  .use('@seneca/transport')
+  // seneca-consul-registry is a Seneca 3 plugin with no Seneca 4 release yet
   .use('consul-registry', {
     host: '127.0.0.1'
   })

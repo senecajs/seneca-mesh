@@ -1,6 +1,7 @@
 var Seneca = require('seneca')
 
 Seneca({tag: 'client', log: 'silent'})
+  .use('@seneca/transport')
   .use('../..')
   .act(
   {

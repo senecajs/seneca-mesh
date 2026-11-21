@@ -1,6 +1,7 @@
 var Seneca = require('seneca')
 
 Seneca()
+  .use('@seneca/transport')
   // Uncomment to get detailed logs
   // .test('print')
 
@@ -19,7 +20,8 @@ Seneca()
     isbase: true,
 
     // this service will respond to the format:hex pattern
-    pin: 'format:hex'
+    // (a base node takes its patterns from pins, not pin)
+    pins: ['format:hex']
   })
 
   .listen(9001)

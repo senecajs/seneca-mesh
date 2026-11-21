@@ -11,7 +11,9 @@ var Seneca = require('seneca')
 var Hapi = require('hapi')
 
 var seneca = Seneca({ tag: 'api' })
+  .use('@seneca/transport')
 
+// seneca-consul-registry is a Seneca 3 plugin with no Seneca 4 release yet
 seneca.use('consul-registry', REGISTRY || {})
 
 seneca
@@ -24,7 +26,6 @@ seneca
       },
       registry: REGISTRY
     },
-    dumpnet: false,
     sneeze: {
       silent: false
     }

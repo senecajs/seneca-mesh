@@ -1,5 +1,9 @@
 
 
+> **Note:** this example needs the plugin seneca-consul-registry, which is a
+> Seneca 3 plugin and has no Seneca 4 release yet. It does not run with
+> @seneca/mesh 2 until that plugin is released for Seneca 4.
+
 ## Consul
 
 ```sh
@@ -10,13 +14,6 @@ $ docker run -p 8400:8400 -p 8500:8500 -p 8600:53/udp -h node1 progrium/consul -
 
 ```sh
 $ node base-service.js
-```
-
-
-## monitor
-
-```sh
-$ node monitor.js
 ```
 
 

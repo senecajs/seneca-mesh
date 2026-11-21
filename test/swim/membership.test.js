@@ -1,12 +1,21 @@
+/*
+  Vendored from @voxgig/swim 0.7.0 (https://github.com/voxgig-attic/swim-js,
+  commit 9ddb2c664a95fc4e158e1eb386de8f0ecb6aaa08, tag v0.7.0, test/membership.js),
+  a fork of https://github.com/mrhooray/swim-js.
+  MIT License, Copyright (c) 2015-2018 Rui Hu and other contributors.
+  See lib/swim/LICENSE.
+  Local changes: moved from tape to node:test and node:assert.
+*/
 'use strict';
 var events = require('events');
-var test = require('tape');
+var assert = require('node:assert');
+var test = require('node:test');
 
-var FailureDetector = require('../lib/failure-detector');
-var Member = require('../lib/member');
-var Membership = require('../lib/membership');
-var MessageType = require('../lib/message-type');
-var Net = require('../lib/net');
+var FailureDetector = require('../../lib/swim/failure-detector');
+var Member = require('../../lib/swim/member');
+var Membership = require('../../lib/swim/membership');
+var MessageType = require('../../lib/swim/message-type');
+var Net = require('../../lib/swim/net');
 
 var SUSPECT_TIMEOUT = 10;
 var LOCAL = new Member({
@@ -16,7 +25,7 @@ var MEMBER_A = new Member({
     host: 'localhost:1111'
 });
 
-test('Membership sends suspect update back when receives Ack from member in suspect state', function t(assert) {
+test('Membership sends suspect update back when receives Ack from member in suspect state', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -33,8 +42,8 @@ test('Membership sends suspect update back when receives Ack from member in susp
         assert.strictEqual(host, MEMBER_A.host);
         assert.strictEqual(message.type, MessageType.Update);
         assert.strictEqual(message.data.state, Member.State.Suspect);
-        assert.deepEqual(message.data, membership.get(MEMBER_A.host).data());
-        assert.end();
+        assert.deepStrictEqual(message.data, membership.get(MEMBER_A.host).data());
+        done();
     };
 
     membership.start();
@@ -42,7 +51,7 @@ test('Membership sends suspect update back when receives Ack from member in susp
     net.emit(Net.EventType.Ack, MEMBER_A, MEMBER_A.host);
 });
 
-test('Membership emits update event when member becomes suspect', function t(assert) {
+test('Membership emits update event when member becomes suspect', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -57,15 +66,15 @@ test('Membership emits update event when member becomes suspect', function t(ass
         membership.stop();
 
         assert.strictEqual(data.state, Member.State.Suspect);
-        assert.deepEqual(data, membership.get(data.host).data());
-        assert.end();
+        assert.deepStrictEqual(data, membership.get(data.host).data());
+        done();
     });
 
     membership.start();
     failureDetector.emit(FailureDetector.EventType.Suspect, MEMBER_A);
 });
 
-test('Membership emits update event when member becomes faulty', function t(assert) {
+test('Membership emits update event when member becomes faulty', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -84,14 +93,14 @@ test('Membership emits update event when member becomes faulty', function t(asse
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 1:
                 membership.stop();
 
                 assert.strictEqual(data.state, Member.State.Faulty);
                 assert.strictEqual(membership.get(data.host), undefined);
-                assert.end();
+                done();
                 break;
         }
     });
@@ -100,7 +109,7 @@ test('Membership emits update event when member becomes faulty', function t(asse
     failureDetector.emit(FailureDetector.EventType.Suspect, MEMBER_A);
 });
 
-test('Membership resumes suspect mechanism after restart', function t(assert) {
+test('Membership resumes suspect mechanism after restart', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -119,14 +128,14 @@ test('Membership resumes suspect mechanism after restart', function t(assert) {
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 1:
                 membership.stop();
 
                 assert.strictEqual(data.state, Member.State.Faulty);
                 assert.strictEqual(membership.get(data.host), undefined);
-                assert.end();
+                done();
                 break;
         }
     });
@@ -137,7 +146,7 @@ test('Membership resumes suspect mechanism after restart', function t(assert) {
     membership.start();
 });
 
-test('Membership accepts alive update for remote member not in membership', function t(assert) {
+test('Membership accepts alive update for remote member not in membership', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -153,9 +162,9 @@ test('Membership accepts alive update for remote member not in membership', func
         membership.stop();
 
         assert.strictEqual(data.state, Member.State.Alive);
-        assert.deepEqual(data, update);
-        assert.deepEqual(data, membership.get(data.host).data());
-        assert.end();
+        assert.deepStrictEqual(data, update);
+        assert.deepStrictEqual(data, membership.get(data.host).data());
+        done();
     });
 
     membership.start();
@@ -163,7 +172,7 @@ test('Membership accepts alive update for remote member not in membership', func
 });
 
 test('Membership accepts alive update with greater incarnation ' +
-     'for alive/suspect remote member in membership', function t(assert) {
+     'for alive/suspect remote member in membership', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -182,16 +191,16 @@ test('Membership accepts alive update with greater incarnation ' +
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 1:
                 membership.stop();
 
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
-                assert.end();
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
+                done();
                 break;
         }
     });
@@ -205,7 +214,7 @@ test('Membership accepts alive update with greater incarnation ' +
 });
 
 test('Membership drops alive update with smaller or equal incarnation ' +
-     'for alive/suspect remote member in membership', function t(assert) {
+     'for alive/suspect remote member in membership', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -225,15 +234,15 @@ test('Membership drops alive update with smaller or equal incarnation ' +
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 1:
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 2:
                 assert.fail();
@@ -248,29 +257,29 @@ test('Membership drops alive update with smaller or equal incarnation ' +
 
                 assert.strictEqual(updateEmitted, 1);
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
+                assert.deepStrictEqual(data, update);
                 break;
             case 1:
                 dropEmitted++;
 
                 assert.strictEqual(updateEmitted, 1);
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
+                assert.deepStrictEqual(data, update);
                 break;
             case 2:
                 dropEmitted++;
 
                 assert.strictEqual(updateEmitted, 2);
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
+                assert.deepStrictEqual(data, update);
                 break;
             case 3:
                 membership.stop();
 
                 assert.strictEqual(updateEmitted, 2);
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
-                assert.end();
+                assert.deepStrictEqual(data, update);
+                done();
                 break;
         }
     });
@@ -302,7 +311,7 @@ test('Membership drops alive update with smaller or equal incarnation ' +
 });
 
 test('Membership drops alive update with smaller or equal incarnation ' +
-     'for faulty member', function t(assert) {
+     'for faulty member', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -322,15 +331,15 @@ test('Membership drops alive update with smaller or equal incarnation ' +
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 1:
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Faulty);
-                assert.deepEqual(data, update);
-                assert.deepEqual(membership.get(data.host), undefined);
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(membership.get(data.host), undefined);
                 break;
             case 2:
                 assert.fail();
@@ -345,15 +354,15 @@ test('Membership drops alive update with smaller or equal incarnation ' +
 
                 assert.strictEqual(updateEmitted, 2);
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
+                assert.deepStrictEqual(data, update);
                 break;
             case 1:
                 membership.stop();
 
                 assert.strictEqual(updateEmitted, 2);
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
-                assert.end();
+                assert.deepStrictEqual(data, update);
+                done();
                 break;
         }
     });
@@ -377,7 +386,7 @@ test('Membership drops alive update with smaller or equal incarnation ' +
     net.emit(Net.EventType.Update, update);
 });
 
-test('Membership drops alive update with smaller or equal incarnation for local member', function t(assert) {
+test('Membership drops alive update with smaller or equal incarnation for local member', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -400,14 +409,14 @@ test('Membership drops alive update with smaller or equal incarnation for local 
                 dropEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
+                assert.deepStrictEqual(data, update);
                 break;
             case 1:
                 membership.stop();
 
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
-                assert.end();
+                assert.deepStrictEqual(data, update);
+                done();
                 break;
         }
     });
@@ -420,7 +429,7 @@ test('Membership drops alive update with smaller or equal incarnation for local 
 });
 
 test('Membership accepts alive update with greater incarnation for local member ' +
-     'and local member affirms itself with greater incarnation', function t(assert) {
+     'and local member affirms itself with greater incarnation', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -437,7 +446,7 @@ test('Membership accepts alive update with greater incarnation for local member 
 
         assert.strictEqual(data.state, Member.State.Alive);
         assert.strictEqual(data.incarnation > update.incarnation, true);
-        assert.end();
+        done();
     });
 
     membership.start();
@@ -446,7 +455,7 @@ test('Membership accepts alive update with greater incarnation for local member 
     net.emit(Net.EventType.Update, update);
 });
 
-test('Membership accepts suspect update for remote member not in membership', function t(assert) {
+test('Membership accepts suspect update for remote member not in membership', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -462,9 +471,9 @@ test('Membership accepts suspect update for remote member not in membership', fu
         membership.stop();
 
         assert.strictEqual(data.state, Member.State.Suspect);
-        assert.deepEqual(data, update);
-        assert.deepEqual(data, membership.get(data.host).data());
-        assert.end();
+        assert.deepStrictEqual(data, update);
+        assert.deepStrictEqual(data, membership.get(data.host).data());
+        done();
     });
 
     membership.start();
@@ -474,7 +483,7 @@ test('Membership accepts suspect update for remote member not in membership', fu
 });
 
 test('Membership accepts suspect update with greater incarnation ' +
-     'for alive/suspect remote member in membership', function t(assert) {
+     'for alive/suspect remote member in membership', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -493,23 +502,23 @@ test('Membership accepts suspect update with greater incarnation ' +
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 1:
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 2:
                 membership.stop();
 
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
-                assert.end();
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
+                done();
                 break;
         }
     });
@@ -527,7 +536,7 @@ test('Membership accepts suspect update with greater incarnation ' +
 });
 
 test('Membership drops suspect update with smaller or equal incarnation ' +
-     'for suspect remote member in membership', function t(assert) {
+     'for suspect remote member in membership', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -547,8 +556,8 @@ test('Membership drops suspect update with smaller or equal incarnation ' +
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 1:
                 assert.fail();
@@ -563,15 +572,15 @@ test('Membership drops suspect update with smaller or equal incarnation ' +
 
                 assert.strictEqual(updateEmitted, 1);
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, update);
+                assert.deepStrictEqual(data, update);
                 break;
             case 1:
                 membership.stop();
 
                 assert.strictEqual(updateEmitted, 1);
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, update);
-                assert.end();
+                assert.deepStrictEqual(data, update);
+                done();
                 break;
         }
     });
@@ -591,7 +600,7 @@ test('Membership drops suspect update with smaller or equal incarnation ' +
 });
 
 test('Membership drops suspect update with smaller or equal incarnation ' +
-     'for faulty member', function t(assert) {
+     'for faulty member', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -611,15 +620,15 @@ test('Membership drops suspect update with smaller or equal incarnation ' +
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 1:
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Faulty);
-                assert.deepEqual(data, update);
-                assert.deepEqual(membership.get(data.host), undefined);
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(membership.get(data.host), undefined);
                 break;
             case 2:
                 assert.fail();
@@ -634,15 +643,15 @@ test('Membership drops suspect update with smaller or equal incarnation ' +
 
                 assert.strictEqual(updateEmitted, 2);
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, update);
+                assert.deepStrictEqual(data, update);
                 break;
             case 1:
                 membership.stop();
 
                 assert.strictEqual(updateEmitted, 2);
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, update);
-                assert.end();
+                assert.deepStrictEqual(data, update);
+                done();
                 break;
         }
     });
@@ -667,7 +676,7 @@ test('Membership drops suspect update with smaller or equal incarnation ' +
 });
 
 test('Membership accepts suspect update with equal incarnation ' +
-     'for alive remote member in membership', function t(assert) {
+     'for alive remote member in membership', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -686,16 +695,16 @@ test('Membership accepts suspect update with equal incarnation ' +
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 1:
                 membership.stop();
 
                 assert.strictEqual(data.state, Member.State.Suspect);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
-                assert.end();
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
+                done();
                 break;
         }
     });
@@ -709,7 +718,7 @@ test('Membership accepts suspect update with equal incarnation ' +
 });
 
 test('Membership drops suspect update with smaller incarnation ' +
-     'for alive remote member in membership', function t(assert) {
+     'for alive remote member in membership', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -726,8 +735,8 @@ test('Membership drops suspect update with smaller incarnation ' +
         updateEmitted++;
 
         assert.strictEqual(data.state, Member.State.Alive);
-        assert.deepEqual(data, update);
-        assert.deepEqual(data, membership.get(data.host).data());
+        assert.deepStrictEqual(data, update);
+        assert.deepStrictEqual(data, membership.get(data.host).data());
     });
 
     membership.on(Membership.EventType.Drop, function onUpdate(data) {
@@ -735,8 +744,8 @@ test('Membership drops suspect update with smaller incarnation ' +
 
         assert.strictEqual(updateEmitted, 1);
         assert.strictEqual(data.state, Member.State.Suspect);
-        assert.deepEqual(data, update);
-        assert.end();
+        assert.deepStrictEqual(data, update);
+        done();
     });
 
     membership.start();
@@ -749,7 +758,7 @@ test('Membership drops suspect update with smaller incarnation ' +
 });
 
 test('Membership drops suspect update with for local member ' +
-     'and local member affirms itself with greater incarnation', function t(assert) {
+     'and local member affirms itself with greater incarnation', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -768,14 +777,14 @@ test('Membership drops suspect update with for local member ' +
         assert.strictEqual(dropEmitted, 1);
         assert.strictEqual(data.state, Member.State.Alive);
         assert.strictEqual(data.incarnation > update.incarnation, true);
-        assert.end();
+        done();
     });
 
     membership.on(Membership.EventType.Drop, function onDrop(data) {
         dropEmitted++;
 
         assert.strictEqual(data.state, Member.State.Suspect);
-        assert.deepEqual(data, update);
+        assert.deepStrictEqual(data, update);
     });
 
     membership.start();
@@ -785,7 +794,7 @@ test('Membership drops suspect update with for local member ' +
 });
 
 test('Membership accepts faulty update with greater or equal incarnation ' +
-     'for remote member in membership', function t(assert) {
+     'for remote member in membership', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -804,30 +813,30 @@ test('Membership accepts faulty update with greater or equal incarnation ' +
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 1:
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Faulty);
-                assert.deepEqual(data, update);
+                assert.deepStrictEqual(data, update);
                 assert.strictEqual(membership.get(data.host), undefined);
                 break;
             case 2:
                 updateEmitted++;
 
                 assert.strictEqual(data.state, Member.State.Alive);
-                assert.deepEqual(data, update);
-                assert.deepEqual(data, membership.get(data.host).data());
+                assert.deepStrictEqual(data, update);
+                assert.deepStrictEqual(data, membership.get(data.host).data());
                 break;
             case 3:
                 membership.stop();
 
                 assert.strictEqual(data.state, Member.State.Faulty);
-                assert.deepEqual(data, update);
+                assert.deepStrictEqual(data, update);
                 assert.strictEqual(membership.get(data.host), undefined);
-                assert.end();
+                done();
                 break;
         }
     });
@@ -848,7 +857,7 @@ test('Membership accepts faulty update with greater or equal incarnation ' +
     net.emit(Net.EventType.Update, update);
 });
 
-test('Membership drops faulty update with for remote member not in membership', function t(assert) {
+test('Membership drops faulty update with for remote member not in membership', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -864,8 +873,8 @@ test('Membership drops faulty update with for remote member not in membership', 
         membership.stop();
 
         assert.strictEqual(data.state, Member.State.Faulty);
-        assert.deepEqual(data, update);
-        assert.end();
+        assert.deepStrictEqual(data, update);
+        done();
     });
 
     membership.start();
@@ -874,7 +883,7 @@ test('Membership drops faulty update with for remote member not in membership', 
     net.emit(Net.EventType.Update, update);
 });
 
-test('Membership drops faulty update with smaller incarnation for remote member in membership', function t(assert) {
+test('Membership drops faulty update with smaller incarnation for remote member in membership', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -891,8 +900,8 @@ test('Membership drops faulty update with smaller incarnation for remote member 
         updateEmitted++;
 
         assert.strictEqual(data.state, Member.State.Alive);
-        assert.deepEqual(data, update);
-        assert.deepEqual(data, membership.get(data.host).data());
+        assert.deepStrictEqual(data, update);
+        assert.deepStrictEqual(data, membership.get(data.host).data());
     });
 
     membership.on(Membership.EventType.Drop, function onDrop(data) {
@@ -900,8 +909,8 @@ test('Membership drops faulty update with smaller incarnation for remote member 
 
         assert.strictEqual(updateEmitted, 1);
         assert.strictEqual(data.state, Member.State.Faulty);
-        assert.deepEqual(data, update);
-        assert.end();
+        assert.deepStrictEqual(data, update);
+        done();
     });
 
     membership.start();
@@ -914,7 +923,7 @@ test('Membership drops faulty update with smaller incarnation for remote member 
 });
 
 test('Membership drops faulty update with for local member ' +
-     'and local member affirms itself with greater incarnation', function t(assert) {
+     'and local member affirms itself with greater incarnation', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -933,13 +942,13 @@ test('Membership drops faulty update with for local member ' +
         assert.strictEqual(dropEmitted, 1);
         assert.strictEqual(data.state, Member.State.Alive);
         assert.strictEqual(data.incarnation > update.incarnation, true);
-        assert.end();
+        done();
     });
 
     membership.on(Membership.EventType.Drop, function onDrop(data) {
         assert.strictEqual(dropEmitted, 0);
         assert.strictEqual(data.state, Member.State.Faulty);
-        assert.deepEqual(data, update);
+        assert.deepStrictEqual(data, update);
 
         dropEmitted++;
     });
@@ -950,7 +959,7 @@ test('Membership drops faulty update with for local member ' +
     net.emit(Net.EventType.Update, update);
 });
 
-test('Membership is a infinite round robin iterator', function t(assert) {
+test('Membership is a infinite round robin iterator', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -998,10 +1007,10 @@ test('Membership is a infinite round robin iterator', function t(assert) {
     });
 
     assert.strictEqual(hostToCount[LOCAL.host], undefined);
-    assert.end();
+    done();
 });
 
-test('Membership next to undefined when there is only local member', function t(assert) {
+test('Membership next to undefined when there is only local member', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -1013,10 +1022,10 @@ test('Membership next to undefined when there is only local member', function t(
     });
 
     assert.strictEqual(membership.next(), undefined);
-    assert.end();
+    done();
 });
 
-test('Membership can randomly select up to n unique remote members', function t(assert) {
+test('Membership can randomly select up to n unique remote members', function t(_, done) {
     var failureDetector = new events.EventEmitter();
     var net = new events.EventEmitter();
     var membership = new Membership({
@@ -1059,5 +1068,5 @@ test('Membership can randomly select up to n unique remote members', function t(
         /* jshint loopfunc: false */
     }
 
-    assert.end();
+    done();
 });

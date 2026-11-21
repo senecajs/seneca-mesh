@@ -1,14 +1,25 @@
+/*
+  Vendored from @voxgig/swim 0.7.0 (https://github.com/voxgig-attic/swim-js,
+  commit 9ddb2c664a95fc4e158e1eb386de8f0ecb6aaa08, tag v0.7.0, test/net.js),
+  a fork of https://github.com/mrhooray/swim-js.
+  MIT License, Copyright (c) 2015-2018 Rui Hu and other contributors.
+  See lib/swim/LICENSE.
+  Local changes: moved from tape to node:test and node:assert; the async
+  module is replaced by small helpers; the batched messages test compares
+  the received values (the original sum() returned nothing); a test checks
+  that close() releases the socket.
+*/
 'use strict';
-var async = require('async');
-var test = require('tape');
+var assert = require('node:assert');
+var test = require('node:test');
 
-var Codec = require('../lib/codec');
-var MessageType = require('../lib/message-type');
-var Net = require('../lib/net');
+var Codec = require('../../lib/swim/codec');
+var MessageType = require('../../lib/swim/message-type');
+var Net = require('../../lib/swim/net');
 
 var codec = new Codec();
 
-test('Net can send and receive primitive messages', function t(assert) {
+test('Net can send and receive primitive messages', function t(_, done) {
     var senderOpts = {
         swim: {
             codec: codec,
@@ -66,18 +77,18 @@ test('Net can send and receive primitive messages', function t(assert) {
     var senderPort;
     var receiverPort;
 
-    async.parallel([
+    parallel([
         sender.listen.bind(sender),
         receiver.listen.bind(receiver)
     ], function parallelCallback(err) {
-        assert.notOk(err);
+        assert.ifError(err);
 
         senderPort = sender.udpSocket.address().port;
         receiverPort = receiver.udpSocket.address().port;
 
-        async.each(tests, function runTest(test, callback) {
+        each(tests, function runTest(test, callback) {
             receiver.on(test.event, function onEvent(data, host) {
-                assert.deepEqual(data, test.data);
+                assert.deepStrictEqual(data, test.data);
                 assert.strictEqual(parseInt(host.split(':')[1]), senderPort);
 
                 receiver.removeAllListeners(test.event);
@@ -92,12 +103,12 @@ test('Net can send and receive primitive messages', function t(assert) {
             sender.close();
             receiver.close();
 
-            assert.end();
+            done();
         });
     });
 });
 
-test('Net can send and receive primitive messages with piggybacked updates', function t(assert) {
+test('Net can send and receive primitive messages with piggybacked updates', function t(_, done) {
     var randomPingData = {
         seq: Math.random()
     };
@@ -115,7 +126,7 @@ test('Net can send and receive primitive messages with piggybacked updates', fun
 
                     assert.strictEqual(bytesAvailable, expectedBytesAvailable);
 
-                    header = new Buffer(Net.MessageTypeSize);
+                    header = Buffer.alloc(Net.MessageTypeSize);
                     Net.WriteMessageType.call(header, MessageType.Update, 0);
 
                     return [Buffer.concat([header, codec.encode(randomUpdateData)])];
@@ -139,26 +150,26 @@ test('Net can send and receive primitive messages with piggybacked updates', fun
     var senderPort;
     var receiverPort;
 
-    async.parallel([
+    parallel([
         sender.listen.bind(sender),
         receiver.listen.bind(receiver)
     ], function parallelCallback(err) {
-        assert.notOk(err);
+        assert.ifError(err);
 
         senderPort = sender.udpSocket.address().port;
         receiverPort = receiver.udpSocket.address().port;
 
-        async.parallel([
+        parallel([
             function receivePing(callback) {
                 receiver.on(Net.EventType.Ping, function onPing(data, host) {
-                    assert.deepEqual(data, randomPingData);
+                    assert.deepStrictEqual(data, randomPingData);
                     assert.strictEqual(parseInt(host.split(':')[1]), senderPort);
                     callback();
                 });
             },
             function receiveUpdate(callback) {
                 receiver.on(Net.EventType.Update, function onUpdate(data, host) {
-                    assert.deepEqual(data, randomUpdateData);
+                    assert.deepStrictEqual(data, randomUpdateData);
                     assert.strictEqual(parseInt(host.split(':')[1]), senderPort);
                     callback();
                 });
@@ -176,12 +187,12 @@ test('Net can send and receive primitive messages with piggybacked updates', fun
             sender.close();
             receiver.close();
 
-            assert.end();
+            done();
         });
     });
 });
 
-test('Net can send and receive multiple messages batched over packets', function t(assert) {
+test('Net can send and receive multiple messages batched over packets', function t(_, done) {
     var senderOpts = {
         swim: {
             codec: codec
@@ -222,16 +233,16 @@ test('Net can send and receive multiple messages batched over packets', function
         Net.prototype.sendBuffer.call(sender, buffer, host);
     };
 
-    async.parallel([
+    parallel([
         sender.listen.bind(sender),
         receiver.listen.bind(receiver)
     ], function parallelCallback(err) {
-        assert.notOk(err);
+        assert.ifError(err);
 
         senderPort = sender.udpSocket.address().port;
         receiverPort = receiver.udpSocket.address().port;
 
-        async.parallel([
+        parallel([
             function receiveUpdate(callback) {
                 receiver.on(Net.EventType.Update, function onUpdate(data) {
                     received.push({
@@ -250,21 +261,92 @@ test('Net can send and receive multiple messages batched over packets', function
             }
         ], function parallelCallback() {
             assert.strictEqual(packetCount < messageCount, true);
-            assert.deepEqual(received.length, messages.length);
-            assert.deepEqual(sum(received), sum(messages));
+            assert.deepStrictEqual(received.length, messages.length);
+            assert.deepStrictEqual(seqs(received), seqs(messages));
 
             receiver.removeAllListeners();
 
             sender.close();
             receiver.close();
 
-            assert.end();
+            done();
         });
     });
 });
 
-function sum(messages) {
-    messages.reduce(function sum(acc, m) {
-        return acc += m.seq;
-    }, 0);
+test('Net close releases the socket and drops later messages', function t(_, done) {
+    var net = new Net({
+        swim: {
+            codec: codec,
+            disseminator: {
+                getUpdatesUpTo: function getUpdatesUpTo() {
+                    return [];
+                }
+            }
+        },
+        udp: {
+            port: 0
+        }
+    });
+
+    assert.strictEqual(net.udpSocket, null);
+
+    net.listen(function onListen() {
+        var socket = net.udpSocket;
+
+        assert.notStrictEqual(socket, null);
+
+        socket.on('close', function onClose() {
+            assert.strictEqual(net.udpSocket, null);
+
+            // not listening: nothing is sent and no socket is created
+            net.sendMessage({
+                type: MessageType.Ping,
+                data: {
+                    seq: 1
+                }
+            }, 'localhost:1');
+            assert.strictEqual(net.udpSocket, null);
+
+            // a second close does nothing
+            net.close();
+            done();
+        });
+
+        net.close();
+    });
+});
+
+function seqs(messages) {
+    return messages.map(function seq(m) {
+        return m.data.seq;
+    }).sort();
+}
+
+// Run the tasks, then call callback with the first error, if any.
+function parallel(tasks, callback) {
+    var pending = tasks.length;
+    var failed = false;
+
+    tasks.forEach(function run(task) {
+        task(function taskCallback(err) {
+            if (failed) {
+                return;
+            }
+            if (err) {
+                failed = true;
+                return callback(err);
+            }
+            if (--pending === 0) {
+                callback();
+            }
+        });
+    });
+}
+
+// Run iterator on each item in parallel, then call callback.
+function each(items, iterator, callback) {
+    parallel(items.map(function toTask(item) {
+        return iterator.bind(undefined, item);
+    }), callback);
 }

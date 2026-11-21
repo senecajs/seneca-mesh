@@ -1,11 +1,20 @@
+/*
+  Vendored from @voxgig/swim 0.7.0 (https://github.com/voxgig-attic/swim-js,
+  commit 9ddb2c664a95fc4e158e1eb386de8f0ecb6aaa08, tag v0.7.0, test/failure-detector.js),
+  a fork of https://github.com/mrhooray/swim-js.
+  MIT License, Copyright (c) 2015-2018 Rui Hu and other contributors.
+  See lib/swim/LICENSE.
+  Local changes: moved from tape to node:test and node:assert.
+*/
 'use strict';
 var events = require('events');
-var test = require('tape');
+var assert = require('node:assert');
+var test = require('node:test');
 
-var FailureDetector = require('../lib/failure-detector');
-var Member = require('../lib/member');
-var MessageType = require('../lib/message-type');
-var Net = require('../lib/net');
+var FailureDetector = require('../../lib/swim/failure-detector');
+var Member = require('../../lib/swim/member');
+var MessageType = require('../../lib/swim/message-type');
+var Net = require('../../lib/swim/net');
 
 var INTERVAL = 100;
 var MAX_TICKS = 3;
@@ -18,7 +27,7 @@ var MEMBER_B = new Member({
     host: 'localhost:2222'
 });
 
-test('FailureDetector ticks/pings at defined interval', function t(assert) {
+test('FailureDetector ticks/pings at defined interval', function t(_, done) {
     var pingCalled = 0;
     var membership = {
         next: function next() {
@@ -41,11 +50,11 @@ test('FailureDetector ticks/pings at defined interval', function t(assert) {
         failureDetector.stop();
 
         assert.strictEqual(pingCalled, TICKS);
-        assert.end();
+        done();
     }, INTERVAL * (TICKS + TICK_OFFSET));
 });
 
-test('FailureDetector does not send PingReq when receives Ack of Ping in time', function t(assert) {
+test('FailureDetector does not send PingReq when receives Ack of Ping in time', function t(_, done) {
     var pingCalled = 0;
     var membership = {
         next: function next() {
@@ -78,11 +87,11 @@ test('FailureDetector does not send PingReq when receives Ack of Ping in time', 
         failureDetector.stop();
 
         assert.strictEqual(pingCalled, TICKS);
-        assert.end();
+        done();
     }, INTERVAL * (TICKS + TICK_OFFSET));
 });
 
-test('FailureDetector sends PingReq when does not receive Ack of Ping in time', function t(assert) {
+test('FailureDetector sends PingReq when does not receive Ack of Ping in time', function t(_, done) {
     var pingTimeout = 1;
     var pingReqCalled = 0;
     var membership = {
@@ -113,11 +122,11 @@ test('FailureDetector sends PingReq when does not receive Ack of Ping in time', 
         failureDetector.stop();
 
         assert.strictEqual(pingReqCalled, TICKS);
-        assert.end();
+        done();
     }, INTERVAL * (TICKS + TICK_OFFSET));
 });
 
-test('FailureDetector does not emit suspect event when receives Ack of PingReq in time', function t(assert) {
+test('FailureDetector does not emit suspect event when receives Ack of PingReq in time', function t(_, done) {
     var pingTimeout = 1;
     var pingReqTimeout = 10;
     var pingReqCalled = 0;
@@ -160,11 +169,11 @@ test('FailureDetector does not emit suspect event when receives Ack of PingReq i
         failureDetector.stop();
 
         assert.strictEqual(pingReqCalled, TICKS);
-        assert.end();
+        done();
     }, INTERVAL * (TICKS + TICK_OFFSET));
 });
 
-test('FailureDetector emits suspect event when does not receive Ack of PingReq in time', function t(assert) {
+test('FailureDetector emits suspect event when does not receive Ack of PingReq in time', function t(_, done) {
     var pingTimeout = 1;
     var pingReqTimeout = 1;
     var suspectEmitted = 0;
@@ -201,11 +210,11 @@ test('FailureDetector emits suspect event when does not receive Ack of PingReq i
         failureDetector.stop();
 
         assert.strictEqual(suspectEmitted, TICKS);
-        assert.end();
+        done();
     }, INTERVAL * (TICKS + TICK_OFFSET));
 });
 
-test('FailureDetector sends Ack when receives Ping', function t(assert) {
+test('FailureDetector sends Ack when receives Ping', function t(_, done) {
     var membership = {
         next: function next() {}
     };
@@ -225,7 +234,7 @@ test('FailureDetector sends Ack when receives Ping', function t(assert) {
         assert.strictEqual(message.type, MessageType.Ack);
         assert.strictEqual(message.data.seq, seq);
         assert.strictEqual(host, MEMBER_A.host);
-        assert.end();
+        done();
     };
 
     failureDetector.start();
@@ -236,7 +245,7 @@ test('FailureDetector sends Ack when receives Ping', function t(assert) {
 });
 
 test('FailureDetector sends Ping to destination when receives PingReq, ' +
-     'then sends Ack to PingReq requester when receives Ack from destination', function t(assert) {
+     'then sends Ack to PingReq requester when receives Ack from destination', function t(_, done) {
     var membership = {
         next: function next() {}
     };
@@ -269,7 +278,7 @@ test('FailureDetector sends Ping to destination when receives PingReq, ' +
                 assert.strictEqual(message.type, MessageType.Ack);
                 assert.strictEqual(host, MEMBER_A.host);
 
-                assert.end();
+                done();
                 break;
         }
     };
@@ -283,7 +292,7 @@ test('FailureDetector sends Ping to destination when receives PingReq, ' +
 });
 
 test('FailureDetector does not send Ack to PingReq requester ' +
-     'when does not receive Ack from destination', function t(assert) {
+     'when does not receive Ack from destination', function t(_, done) {
     var pingTimeout = 1;
     var membership = {
         next: function next() {}
@@ -325,7 +334,7 @@ test('FailureDetector does not send Ack to PingReq requester ' +
         verifyInternal(failureDetector, assert);
         failureDetector.stop();
 
-        assert.end();
+        done();
     }, INTERVAL);
 });
 

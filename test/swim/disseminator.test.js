@@ -1,16 +1,25 @@
+/*
+  Vendored from @voxgig/swim 0.7.0 (https://github.com/voxgig-attic/swim-js,
+  commit 9ddb2c664a95fc4e158e1eb386de8f0ecb6aaa08, tag v0.7.0, test/disseminator.js),
+  a fork of https://github.com/mrhooray/swim-js.
+  MIT License, Copyright (c) 2015-2018 Rui Hu and other contributors.
+  See lib/swim/LICENSE.
+  Local changes: moved from tape to node:test and node:assert.
+*/
 'use strict';
 var events = require('events');
-var test = require('tape');
+var assert = require('node:assert');
+var test = require('node:test');
 
-var Codec = require('../lib/codec');
-var Disseminator = require('../lib/disseminator');
-var Membership = require('../lib/membership');
-var MessageType = require('../lib/message-type');
-var Net = require('../lib/net');
+var Codec = require('../../lib/swim/codec');
+var Disseminator = require('../../lib/swim/disseminator');
+var Membership = require('../../lib/swim/membership');
+var MessageType = require('../../lib/swim/message-type');
+var Net = require('../../lib/swim/net');
 
 var codec = new Codec();
 
-test('Disseminator honors bytesAvailable, dissemination limit and priority', function t(assert) {
+test('Disseminator honors bytesAvailable, dissemination limit and priority', function t(_, done) {
     var membership = new events.EventEmitter();
     var disseminator = new Disseminator({
         swim: {
@@ -76,10 +85,10 @@ test('Disseminator honors bytesAvailable, dissemination limit and priority', fun
     assert.strictEqual(numberOfBuffers, numberOfUpdates *
         Disseminator.Default.disseminationFormula(Disseminator.Default.disseminationFactor, numberOfMembers));
     disseminator.stop();
-    assert.end();
+    done();
 });
 
-test('Disseminator removes over disseminated updates on decrease of dissemination limit', function t(assert) {
+test('Disseminator removes over disseminated updates on decrease of dissemination limit', function t(_, done) {
     var membership = new events.EventEmitter();
     var disseminator = new Disseminator({
         swim: {
@@ -114,5 +123,5 @@ test('Disseminator removes over disseminated updates on decrease of disseminatio
     assert.strictEqual(buffers.length, 0);
 
     disseminator.stop();
-    assert.end();
+    done();
 });

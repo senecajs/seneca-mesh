@@ -1,16 +1,15 @@
-/* MIT License. Copyright © 2015-2018, Richard Rodger and other contributors. */
+/* MIT License. Copyright © 2015-2026, Richard Rodger and other contributors. */
 
 'use strict'
 
 var _ = require('lodash')
-var Sneeze = require('sneeze')
 var Nid = require('nid')
 var Rif = require('rif')
 var Discover = require('node-discover')
-var Ip = require('ip')
-var Optioner = require('optioner')
+var BalanceClient = require('@seneca/balance-client')
 
-var Joi = Optioner.Joi
+// Vendored from sneeze 3.0.0 and @voxgig/swim 0.7.0, see NOTICE.
+var Sneeze = require('./lib/sneeze')
 
 module.exports = mesh
 
@@ -19,83 +18,136 @@ var DEFAULT_PORT = (module.exports.DEFAULT_PORT = 39999)
 
 var intern = (module.exports.intern = make_intern())
 
-var optioner = Optioner({
-  pin: Joi.alternatives().try(Joi.string(), Joi.object()),
-  pins: Joi.array(),
-  host: Joi.string(),
-  port: Joi.number().integer().min(0).max(65535),
-  isbase: false,
+// Seneca 4 validates these options, and rejects keys that are not declared.
+mesh.defaults = function defaults({ valid }) {
+  return {
+    // Action pattern(s) that this node serves: 'a:1', 'a:1;b:2' or { a: 1 }.
+    pin: valid.Skip(valid.One(String, Object)),
+    pins: valid.Skip(Array),
 
-  model: 'consume',
-  listen: Joi.array(),
+    // Host and port of the membership (SWIM) network node.
+    host: valid.Skip(String),
+    port: valid.Skip(valid.Min(0, valid.Max(65535, valid.Integer()))),
 
-  auto: true,
-  make_entry: intern.default_make_entry,
+    isbase: false,
 
-  jointime: 111, // join and wait for network details
+    // Deprecated alias of isbase.
+    base: valid.Skip(Boolean),
 
-  // Explicitly allow overrides of specific local patterns. This is not supported
-  // by default to prevent infinite loops between subling services with same pins.
-  override: false,
+    // Base nodes, as 'host:port' strings (discover.defined).
+    bases: valid.Skip([String]),
+    remotes: valid.Skip([String]),
 
-  discover: {
-    defined: {
-      active: true,
+    // Fixed network interfaces, in the format of os.networkInterfaces().
+    netif: valid.Skip(valid.Open({})),
+
+    // Membership tag; null disables tagging. Default: 'mesh'.
+    tag: valid.Skip(valid.Nullable(String)),
+
+    model: 'consume',
+
+    // Listen configurations, one seneca.listen per entry.
+    listen: valid.Skip([valid.Open({})]),
+
+    auto: true,
+    make_entry: function make_entry(member) {
+      return intern.default_make_entry(member)
     },
 
-    guess: {
-      active: true,
-    },
+    jointime: 111, // join and wait for network details
 
-    multicast: {
-      active: true,
-      address: null,
-      // max_search: 22,
-      max_search: 2,
-      search_interval: 111,
-    },
+    // Explicitly allow overrides of specific local patterns (true, or a list
+    // of pins). This is not supported by default to prevent infinite loops
+    // between subling services with same pins.
+    override: valid.One(false, [String]),
 
-    registry: {
-      // Not active by default, need to explicitly turn it on.
-      active: false,
-
-      // check registry periodically
-      refresh_interval: 1111,
-
-      // remove first entry with this probability
-      // live base nodes will add themselves back in
-      prune_first_probability: 0.01,
-
-      // leave at least this many base entries
-      prune_bound: 11,
-    },
-
-    custom: {
-      active: true,
-      find: function (seneca, options, bases, next) {
-        next([], false)
+    discover: {
+      defined: {
+        active: true,
       },
+
+      guess: {
+        active: true,
+      },
+
+      multicast: {
+        active: true,
+
+        // Broadcast address, or '/<prefix length>' to derive it from host.
+        address: valid.Skip(valid.Nullable(String)),
+
+        // max_search: 22,
+        max_search: 2,
+        search_interval: 111,
+      },
+
+      registry: {
+        // Not active by default, need to explicitly turn it on.
+        active: false,
+
+        // check registry periodically
+        refresh_interval: 1111,
+
+        // remove first entry with this probability
+        // live base nodes will add themselves back in
+        prune_first_probability: 0.01,
+
+        // leave at least this many base entries
+        prune_bound: 11,
+      },
+
+      custom: {
+        active: true,
+        find: function find(seneca, options, bases, next) {
+          next([], false)
+        },
+      },
+
+      // stop discovery if defined bases are provided
+      stop: true,
     },
 
-    // stop discovery if defined bases are provided
-    stop: true,
-  },
+    // Options of the balance client that mesh loads (@seneca/balance-client).
+    balance_client: valid.Open({}),
 
-  monitor: false,
-  sneeze: null,
-})
+    // Options passed through to the membership network (sneeze).
+    sneeze: valid.Skip(valid.Nullable(valid.Open({}))),
+  }
+}
 
 function mesh(options) {
   var seneca = this
 
-  seneca.depends('balance-client')
-
-  var opts = optioner.check(options)
+  var opts = options
 
   var closed = false
 
   var bases = []
   var sneeze
+
+  // Membership nodes, discovery broadcasters and timers of this instance,
+  // released when the instance closes.
+  var sneezes = []
+  var resources = { discovers: [], intervals: [] }
+
+  seneca.destroy(function mesh_close() {
+    closed = true
+
+    sneezes.forEach(function (sneeze) {
+      sneeze.leave()
+    })
+    sneezes = []
+
+    resources.discovers.forEach(function (d) {
+      d.stop()
+    })
+    resources.discovers = []
+
+    resources.intervals.forEach(function (i) {
+      clearInterval(i)
+    })
+    resources.intervals = []
+  })
 
   seneca.add('role:mesh,get:bases', function get_bases(msg, done) {
     done(null, { bases: [].concat(bases) })
@@ -122,17 +174,30 @@ function mesh(options) {
   opts.host = intern.resolve_interface(opts.host, rif)
   var tag = opts.tag
 
-  var listen = opts.listen || [{ pin: pin, model: opts.model || 'consume' }]
+  // Copies, as the listen configurations are completed below.
+  var listen = opts.listen
+    ? opts.listen.map(function (listen_opts) {
+        return Object.assign({}, listen_opts)
+      })
+    : [{ pin: pin, model: opts.model || 'consume' }]
 
+  // Seneca 4 has no built-in network transport: mesh listens and the
+  // balance clients send with @seneca/transport (a peer dependency).
+  if (!seneca.has_plugin('transport')) {
+    seneca.use('@seneca/transport')
+  }
+
+  // Load the balancer that this package depends on, not whichever
+  // balance-client a short name would find first.
   var balance_client_opts = opts.balance_client || {}
-  seneca.use('balance-client$mesh~' + mid, balance_client_opts)
+  seneca.use({ define: BalanceClient, tag: 'mesh~' + mid }, balance_client_opts)
 
   seneca.add('init:mesh', init)
 
   function init(msg, init_done) {
     var seneca = this
 
-    intern.find_bases(seneca, opts, rif, function (found_bases) {
+    intern.find_bases(seneca, opts, rif, resources, function (found_bases) {
       bases = found_bases
 
       seneca.log.debug({
@@ -143,17 +208,13 @@ function mesh(options) {
         opts: opts,
       })
 
-      var sneeze_opts = opts.sneeze || {}
+      var sneeze_opts = Object.assign({}, opts.sneeze)
 
       sneeze_opts.bases = bases
       sneeze_opts.isbase = isbase
       sneeze_opts.port = opts.port || void 0
       sneeze_opts.host = opts.host || void 0
       sneeze_opts.identifier = seneca.id
-
-      sneeze_opts.monitor = sneeze_opts.monitor || {
-        active: !!opts.monitor,
-      }
 
       sneeze_opts.tag =
         void 0 !== sneeze_opts.tag
@@ -212,6 +273,7 @@ function mesh(options) {
           sneeze_opts.identifier + '~' + config.pin + '~' + Date.now()
 
         sneeze = Sneeze(instance_sneeze_opts)
+        sneezes.push(sneeze)
 
         var meta = {
           config: seneca.util.clean(config),
@@ -224,14 +286,6 @@ function mesh(options) {
         sneeze.on('add', add_client)
         sneeze.on('remove', remove_client)
         sneeze.on('ready', done)
-
-        seneca.add('role:seneca,cmd:close', function (msg, done) {
-          closed = true
-          if (sneeze) {
-            sneeze.leave()
-          }
-          this.prior(msg, done)
-        })
 
         seneca.add('role:mesh,get:members', function get_members(msg, done) {
           var members = []
@@ -252,7 +306,9 @@ function mesh(options) {
           })
         })
 
-        sneeze.join(meta)
+        // The membership codec (MessagePack) cannot encode functions, so
+        // only JSON data goes into the member record.
+        sneeze.join(intern.json_safe(meta))
 
         function add_client(meta) {
           if (closed) return
@@ -409,8 +465,10 @@ function make_intern() {
       return out
     },
 
-    find_bases: function (seneca, opts, rif, done) {
+    find_bases: function (seneca, opts, rif, resources, done) {
       var bases = []
+
+      resources = resources || { discovers: [], intervals: [] }
 
       intern.addbase_funcmap.custom = function (seneca, opts, bases, next) {
         opts.discover.custom.find(seneca, opts, bases, function (add, stop) {
@@ -443,7 +501,7 @@ function make_intern() {
           return done(bases)
         }
 
-        intern.addbase_funcmap[addbase](seneca, opts, bases, next)
+        intern.addbase_funcmap[addbase](seneca, opts, bases, next, resources)
       }
     },
 
@@ -473,17 +531,14 @@ function make_intern() {
         next(add)
       },
 
-      multicast: function (seneca, opts, bases, next) {
+      multicast: function (seneca, opts, bases, next, resources) {
         var add = []
         var mc_opts = opts.discover.multicast
 
         // Determine broadcast address using subnetmask
         if (_.isString(mc_opts.address) && '/' === mc_opts.address[0]) {
           var netprefix = parseInt(mc_opts.address.substring(1), 10)
-          mc_opts.address = Ip.subnet(
-            opts.host,
-            Ip.fromPrefixLen(netprefix)
-          ).broadcastAddress
+          mc_opts.address = intern.broadcast_address(opts.host, netprefix)
         }
 
         var d = Discover({
@@ -495,6 +550,8 @@ function make_intern() {
             port: opts.port || DEFAULT_PORT,
           },
         })
+
+        resources.discovers.push(d)
 
         var findCount = 0
         var fi = setInterval(function () {
@@ -511,18 +568,22 @@ function make_intern() {
             // only bases should keep broadcasting
             if (!opts.isbase) {
               d.stop()
+              _.pull(resources.discovers, d)
             }
 
             clearInterval(fi)
+            _.pull(resources.intervals, fi)
 
             next(add, 0 < add.length)
           }
 
           findCount++
         }, mc_opts.search_interval)
+
+        resources.intervals.push(fi)
       },
 
-      registry: function (seneca, opts, bases, next) {
+      registry: function (seneca, opts, bases, next, resources) {
         var first = true
 
         var base_addr =
@@ -531,7 +592,7 @@ function make_intern() {
         if (opts.isbase) {
           var ri = opts.discover.registry.refresh_interval
           ri = ri + ri * (Math.random() - 0.5)
-          setInterval(getset_bases, ri)
+          resources.intervals.push(setInterval(getset_bases, ri))
         }
 
         getset_bases()
@@ -580,6 +641,65 @@ function make_intern() {
           )
         }
       },
+    },
+
+    // IPv4 broadcast address of the subnet of host with the given prefix
+    // length, for example ('192.168.1.5', 24) -> '192.168.1.255'.
+    broadcast_address: function (host, prefix) {
+      var parts = String(host).split('.')
+      var valid =
+        4 === parts.length &&
+        parts.every(function (part) {
+          return /^\d{1,3}$/.test(part) && +part <= 255
+        }) &&
+        0 <= prefix &&
+        prefix <= 32
+
+      if (!valid) {
+        throw new Error(
+          'mesh: discover.multicast.address /' +
+            prefix +
+            ' needs an IPv4 host option and a prefix length from 0 to 32, host: ' +
+            host
+        )
+      }
+
+      var addr = parts.reduce(function (acc, part) {
+        return acc * 256 + +part
+      }, 0)
+      var size = Math.pow(2, 32 - prefix)
+      var bcast = addr - (addr % size) + size - 1
+
+      return [
+        Math.floor(bcast / 16777216) % 256,
+        Math.floor(bcast / 65536) % 256,
+        Math.floor(bcast / 256) % 256,
+        bcast % 256,
+      ].join('.')
+    },
+
+    // A copy of obj that holds only JSON data: no functions or undefined
+    // values, dates as strings and objects with toJSON as their JSON value.
+    // If obj is circular, objects already seen are dropped.
+    json_safe: function (obj) {
+      var json
+
+      try {
+        json = JSON.stringify(obj)
+      } catch (e) {
+        var seen = []
+        json = JSON.stringify(obj, function (key, val) {
+          if (null != val && 'object' === typeof val) {
+            if (-1 !== seen.indexOf(val)) {
+              return void 0
+            }
+            seen.push(val)
+          }
+          return val
+        })
+      }
+
+      return void 0 === json ? json : JSON.parse(json)
     },
 
     default_make_entry: function (member) {

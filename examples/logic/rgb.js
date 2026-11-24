@@ -5,7 +5,7 @@ module.exports = function rgb (options) {
 
   function format_rgb (msg, done) {
     done(null, {
-      color: Color(msg.color).rgbString(),
+      color: Color(msg.color).rgb().string(),
       format: 'rgb'
     })
   }

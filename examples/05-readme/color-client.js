@@ -1,6 +1,7 @@
 var Seneca = require('seneca')
 
 Seneca()
+  .use('@seneca/transport')
   // Uncomment to get detailed logs
   // .test('print')
 

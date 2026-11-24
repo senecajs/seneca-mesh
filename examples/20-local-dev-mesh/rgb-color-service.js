@@ -1,6 +1,7 @@
 var Seneca = require('seneca')
 
 Seneca({tag: 'rgb'})
+  .use('@seneca/transport')
   .test('print')
   .use('../logic/rgb')
   .use('../..', {

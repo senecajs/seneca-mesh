@@ -1,0 +1,79 @@
+@seneca/mesh
+Copyright (c) 2015-2026 Richard Rodger and other contributors.
+Licensed under the MIT License, see LICENSE.
+
+This package contains code copied (vendored) from two other MIT-licensed
+packages. Since @seneca/mesh 2.0.0 it no longer depends on them. Both stay
+on npm unchanged for the users of seneca-mesh 1.x.
+
+
+1. swim (lib/swim/)
+
+   Origin:   @voxgig/swim 0.7.0
+             https://github.com/voxgig-attic/swim-js
+             commit 9ddb2c664a95fc4e158e1eb386de8f0ecb6aaa08 (tag v0.7.0),
+             identical to the npm tarball of @voxgig/swim 0.7.0.
+             It is a fork of https://github.com/mrhooray/swim-js.
+   Files:    lib/codec.js, lib/disseminator.js, lib/error.js,
+             lib/failure-detector.js, lib/member.js, lib/membership.js,
+             lib/message-type.js, lib/net.js and lib/swim.js of that commit,
+             copied to lib/swim/ under the same names.
+   Author:   Rui Hu <code@mrhooray.com> and other contributors.
+   Licence:  MIT. Neither voxgig-attic/swim-js nor mrhooray/swim-js has a
+             LICENSE file; the licence is declared only in their
+             package.json ("license": "MIT"). lib/swim/LICENSE gives the MIT
+             text with that author.
+
+   Local changes:
+   * codec.js: the native msgpack 1.0.3 module, which no longer builds on
+     Node.js 24 or 26, is replaced by @msgpack/msgpack (pure JavaScript).
+     Every mesh 2.x node uses this codec. The MessagePack format family is
+     the same, but dates, objects with a toJSON method and functions are
+     encoded differently, so mesh 2.x does not support mixed clusters with
+     seneca-mesh 1.x nodes.
+   * membership.js: the native farmhash module is replaced by a node:crypto
+     (SHA-256) hash in checksum(). The checksum is local only; no message
+     carries it.
+   * net.js: the UDP socket is created in listen(). close() closes it and no
+     longer creates a new socket, which kept a handle open after leave().
+     Nothing is sent once the socket is closed.
+   * swim.js: leave() also stops a join that is still waiting for an answer.
+   * failure-detector.js: no ping is sent after stop().
+   * new Buffer() is replaced by Buffer.alloc() and Buffer.from().
+   * The debug module is replaced by util.debuglog (NODE_DEBUG=swim), and
+     the clone module by lodash cloneDeep.
+   * Each file has a header comment that names its origin.
+
+
+2. sneeze (lib/sneeze.js)
+
+   Origin:   sneeze 3.0.0
+             https://github.com/rjrodger/sneeze
+             commit 2dc3f49db92eaafaa1175b4deebdd3dd2a704a5f (tag v3.0.0),
+             identical to the npm tarball of sneeze 3.0.0.
+   Files:    sneeze.js of that commit, copied to lib/sneeze.js.
+   Author:   Richard Rodger and other contributors.
+   Licence:  MIT, Copyright (c) 2016 Richard Rodger. The licence text is in
+             lib/sneeze.LICENSE, unchanged.
+
+   Local changes:
+   * Uses the vendored swim in lib/swim/ instead of @voxgig/swim.
+   * The terminal monitor (make_monitor, parse_meta) and its option
+     monitor are removed, with the modules keypress, ansi-escapes, pad,
+     chalk and jsonpath that only it used.
+   * Optioner/Joi option checking is replaced by plain defaults with the
+     same rules: a key that is undefined takes its default, an array
+     replaces the default array, and other keys pass through. silent must
+     be a boolean and bases an array.
+   * A node whose join fails leaves its swim instance before it retries or
+     gives up, and leave() leaves every swim instance of the node (also when
+     join() was called more than once) and cancels pending join retries, so
+     that no socket or timer stays open. The join callbacks act on their
+     own swim instance.
+   * The default identifier uses the constant version 3.0.0 instead of
+     reading the version from sneeze's package.json.
+
+
+The tests of both packages are vendored too, moved to node:test:
+test/swim/*.test.js from test/*.js of swim-js (tape), and test/sneeze.test.js
+from test/sneeze.test.js of sneeze (lab).

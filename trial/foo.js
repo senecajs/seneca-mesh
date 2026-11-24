@@ -6,7 +6,8 @@ var BASES = (process.env.BASES || process.argv[3] || '').split(',')
 var BROADCAST = process.env.BROADCAST
 var REGISTRY = JSON.parse(process.env.REGISTRY || '{"active":false}')
 
-require('seneca')({ tag: 'foo', legacy: {transport: false} })
+require('seneca')({ tag: 'foo' })
+  .use('@seneca/transport')
   .test()
   .add('foo:1', function(msg, done) {
     done(null, { x: 1, v: 100 + msg.v })
@@ -17,6 +18,7 @@ require('seneca')({ tag: 'foo', legacy: {transport: false} })
   .add('zed:1,q:1', function(msg, done) {
     done(null, { z: 1, f: 1, q:1, v: 100 + msg.v })
   })
+  // seneca-consul-registry is a Seneca 3 plugin with no Seneca 4 release yet
   .use('consul-registry', REGISTRY || {})
   .use('..', {
     pin: 'foo:1',
@@ -29,7 +31,6 @@ require('seneca')({ tag: 'foo', legacy: {transport: false} })
       },
       registry: REGISTRY
     },
-    dumpnet: false,
     sneeze: {
       silent: true
     }

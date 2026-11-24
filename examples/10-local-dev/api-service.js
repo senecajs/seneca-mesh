@@ -3,6 +3,7 @@ var Seneca = require('seneca')
 var Hapi = require('hapi')
 
 Seneca({tag: 'api'})
+  .use('@seneca/transport')
   .client({
     pin: 'role:color,format:hex',
     port: 9001

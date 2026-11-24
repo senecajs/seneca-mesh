@@ -1,6 +1,7 @@
 var Seneca = require('seneca')
 
 Seneca({tag: 'hex'})
+  .use('@seneca/transport')
   .test('print')
   .use('../logic/hex')
   .use('../..', {

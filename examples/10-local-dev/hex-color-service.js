@@ -1,6 +1,7 @@
 var Seneca = require('seneca')
 
 Seneca({tag: 'hex'})
+  .use('@seneca/transport')
   .use('../logic/hex')
   .listen({
     pin: 'role:color,format:hex',

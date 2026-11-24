@@ -5,7 +5,7 @@ module.exports = function hex (options) {
 
   function format_hex (msg, done) {
     done(null, {
-      color: Color(msg.color).hexString(),
+      color: Color(msg.color).hex(),
       format: 'hex'
     })
   }

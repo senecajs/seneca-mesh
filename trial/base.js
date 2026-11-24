@@ -7,11 +7,12 @@ var PORT = process.env.PORT
 var BROADCAST = process.env.BROADCAST
 var REGISTRY = JSON.parse(process.env.REGISTRY || '{"active":false}')
 
-require('seneca')({ tag: 'b0', legacy: {transport: false} })
+require('seneca')({ tag: 'b0' })
+  .use('@seneca/transport')
   .test()
+  // seneca-consul-registry is a Seneca 3 plugin with no Seneca 4 release yet
   .use('consul-registry', REGISTRY || {})
   .use('..', {
-    monitor: true,
     isbase: true,
     host: HOST,
     port: PORT,
@@ -22,7 +23,6 @@ require('seneca')({ tag: 'b0', legacy: {transport: false} })
       },
       registry: REGISTRY
     },
-    dumpnet: false,
     sneeze: {
       silent: true
     }

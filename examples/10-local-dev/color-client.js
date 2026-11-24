@@ -1,6 +1,7 @@
 var Seneca = require('seneca')
 
 Seneca({tag: 'client', log: 'silent'})
+  .use('@seneca/transport')
   .client({
     pin: 'role:color,format:hex',
     port: 9001

@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@seneca/transport": "^9.0.0",
+    "color": "^3.2.1",
     "prettier": "^2.0.5",
     "seneca": "^4.0.0"
   },

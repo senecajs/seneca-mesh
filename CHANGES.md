@@ -45,7 +45,9 @@
   configuration and the committed `package-lock.json`.
 * Tests run on `node:test`, including the vendored tests of swim and
   sneeze. The examples load `@seneca/transport`; the consul example needs
-  `seneca-consul-registry`, which has no Seneca 4 release yet.
+  `seneca-consul-registry`, which has no Seneca 4 release yet. The color
+  examples use the `color` 3 API (`hex()`, `rgb().string()`), and `color`
+  stays a development dependency for them.
 
 ## 1.5.0 2020-05-15
 

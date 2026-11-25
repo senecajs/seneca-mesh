@@ -1,0 +1,87 @@
+# senecajs-build-template 1.0.0 -- do not edit in a package repository;
+# edit senecajs/admin templates/build.yml and sync (see its README).
+# Repositories whose tests need service containers keep their own build.yml
+# (see build-services.example.yml) and set "test": "ci" in
+# .github/release.json. Service containers run on Linux runners only, so
+# those workflows stay on ubuntu-latest (DEC-17).
+#
+# Continuous integration: install, build and test on Linux, Windows and
+# macOS (DEC-17), each with Node.js 24 (the minimum Seneca 4 supports) and
+# Node.js 26 (the current LTS). Publishing is done by release.yml (npm
+# trusted publishing, started by hand), which runs on Linux only.
+#
+# The six jobs report the check names "node 24.x on ubuntu-latest", ...,
+# "node 26.x on macos-latest". Branch protection requires all six (DEC-20,
+# step W9 of the publish runbook).
+#
+# Actions are pinned to full commit SHAs (the senecajs organization
+# requires it); the sync tooling in senecajs/admin updates the pins.
+
+name: build
+
+on:
+  push:
+    # Every default branch name used in the organization, and maintenance
+    # branches (N.x), so that this file is the same in every repository.
+    branches: [main, master, develop, '*.x']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: node ${{ matrix.node-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [24.x, 26.x]
+
+    # Every run step uses bash: Git Bash on Windows, where the default
+    # shell would be PowerShell.
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      # Windows runners convert LF to CRLF on checkout by default. Keep the
+      # bytes that are committed, as on Linux and macOS.
+      - name: Keep line endings as committed
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          package-manager-cache: false
+
+      # npm runs package.json scripts with cmd.exe on Windows. Scripts in this
+      # organisation are written for sh (inline variables, rm, cp, for
+      # loops), so run them with Git Bash there too.
+      - name: Run npm scripts with Git Bash
+        if: runner.os == 'Windows'
+        run: npm config set script-shell 'C:\Program Files\Git\bin\bash.exe'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-package-lock --no-audit --no-fund
+          fi
+
+      - run: npm run build --if-present
+      - run: npm test

@@ -1,0 +1,338 @@
+# senecajs-release-template 1.0.0 -- do not edit in a package repository;
+# edit senecajs/admin templates/release.yml and sync (see its README).
+# Per-repository settings belong in .github/release.json.
+#
+# Publish this package to npm with npm trusted publishing (GitHub OIDC).
+# No npm token exists anywhere: the publish job exchanges a short-lived
+# GitHub OIDC token for a publish credential, and npm attaches provenance.
+#
+# Trigger: workflow_dispatch only (Actions > release > Run workflow, or
+#   gh workflow run release.yml -f dry-run=false -f sha=<commit> [-f version=X.Y.Z]).
+# A run releases the package.json version of the selected branch:
+#   * dry-run (the default): check, install, build, test and pack; nothing
+#     is published.
+#   * dry-run off: also publish that exact tarball to npm, then create the
+#     tag vX.Y.Z on the commit and the GitHub release. Publishing is only
+#     allowed from the default branch and from maintenance branches (N.x),
+#     here and by the "npm" environment's deployment branch policy.
+#
+# npm trusted publisher of the package (one-time, by a package owner):
+#   npm trust github <package> --repo senecajs/<repository> \
+#     --file release.yml --env npm --allow-publish
+#
+# Jobs and their permissions:
+#   validate        contents: read, actions: read. Runs third-party code
+#                   (npm install, build, tests) and packs the tarball.
+#   publish         id-token: write, in the "npm" environment. Installs and
+#                   builds nothing: it checks the validated tarball against
+#                   the commit and publishes it.
+#   verify          contents: read. Waits for npm's publish-time scan, then
+#                   checks the version, dist-tag and attestation. No OIDC and
+#                   no environment: a re-run needs no approval and never
+#                   publishes.
+#   github-release  contents: write. Tag and GitHub release, after verify.
+#
+# Actions are pinned to full commit SHAs (the senecajs organization
+# requires it); the sync tooling in senecajs/admin updates the pins.
+
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Dry run: check, build, test and pack, but do not publish'
+        type: boolean
+        default: true
+      version:
+        description: 'Expected version (optional): fail unless package.json has exactly this version'
+        type: string
+        default: ''
+      dist-tag:
+        description: 'npm dist-tag (empty: latest, or next for a prerelease; for example 3x for a maintenance release)'
+        type: string
+        default: ''
+      sha:
+        description: 'Expected commit, 40 characters (required to publish): fail unless the branch head is exactly this commit'
+        type: string
+        default: ''
+
+# One release at a time in the repository. Runs queue instead of replacing
+# a pending run, and a run in progress is never cancelled.
+concurrency:
+  group: release
+  queue: max
+
+permissions: {}
+
+env:
+  NODE_VERSION: '24'
+  CHECK: .github/scripts/release-check.js
+
+jobs:
+  validate:
+    name: validate, build, test and pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read # ci-status: list the CI runs of the commit
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      dry_run: ${{ steps.plan.outputs.dry_run }}
+      name: ${{ steps.check.outputs.name }}
+      version: ${{ steps.check.outputs.version }}
+      tag: ${{ steps.check.outputs.tag }}
+      dist_tag: ${{ steps.check.outputs.dist_tag }}
+      prerelease: ${{ steps.check.outputs.prerelease }}
+      tarball_name: ${{ steps.pack.outputs.tarball_name }}
+      sha256: ${{ steps.pack.outputs.sha256 }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The publish job checks out this exact commit, not the branch head.
+      # release-check.js appends its results to RELEASE_REPORT.
+      - name: Record the commit
+        id: commit
+        env:
+          DRY_RUN: ${{ inputs.dry-run }}
+          EXPECT_SHA: ${{ inputs.sha }}
+        run: |
+          sha=$(git rev-parse HEAD)
+          # A publish releases only the commit that was validated.
+          if [ "$DRY_RUN" != true ] || [ -n "$EXPECT_SHA" ]; then
+            if [ "$EXPECT_SHA" != "$sha" ]; then
+              echo "::error::the branch head is $sha, the expected commit is '$EXPECT_SHA'; a publish needs -f sha=<validated commit>"
+              exit 1
+            fi
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_REPORT=$RUNNER_TEMP/release-report.jsonl" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+
+      - name: Check the package, the version and the registry
+        id: check
+        env:
+          DIST_TAG: ${{ inputs.dist-tag }}
+          EXPECT_VERSION: ${{ inputs.version }}
+        run: >-
+          node "$CHECK" check
+          --dist-tag "$DIST_TAG"
+          --expect-version "$EXPECT_VERSION"
+          --notes-file "$RUNNER_TEMP/package/release-notes.md"
+
+      - name: Plan the run
+        id: plan
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          MAINTENANCE: ${{ steps.check.outputs.maintenance_branch }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          # Publish only from the default branch or a maintenance branch, so
+          # that a run started on a feature branch cannot release it.
+          if [ "$DRY_RUN" != true ]; then
+            if [ "$REF_TYPE" != branch ] ||
+              { [ "$REF_NAME" != "$DEFAULT_BRANCH" ] && ! printf '%s' "$REF_NAME" | grep -Eq "$MAINTENANCE"; }; then
+              echo "::error::publish from $DEFAULT_BRANCH or a maintenance branch, not $REF_TYPE $REF_NAME; use dry-run to validate it"
+              exit 1
+            fi
+          fi
+          echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
+          echo "ref=$REF_TYPE $REF_NAME dry_run=$DRY_RUN"
+
+      - name: Check the tag
+        env:
+          TAG: ${{ steps.check.outputs.tag }}
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: node "$CHECK" tag --tag "$TAG" --sha "$SHA"
+
+      # Required when .github/release.json has "test": "ci" (tests that need
+      # services or credentials run in CI only); informational otherwise.
+      - name: Check CI for the commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: node "$CHECK" ci-status --sha "$SHA"
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            # No committed lockfile: resolve afresh and do not write one.
+            npm install --no-package-lock --no-audit --no-fund
+          fi
+
+      - name: Build
+        if: steps.check.outputs.build == 'true'
+        run: npm run build --if-present
+
+      - name: Check that install and build changed no tracked file
+        run: node "$CHECK" tree
+
+      - name: Test
+        if: steps.check.outputs.test == 'run'
+        run: npm test
+
+      - name: Pack
+        id: pack
+        run: node "$CHECK" pack --out "$RUNNER_TEMP/package"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package
+          path: |
+            ${{ runner.temp }}/package/*.tgz
+            ${{ runner.temp }}/package/release-notes.md
+          if-no-files-found: error
+          retention-days: 7
+
+      # Machine-readable results, collected by bulk dry runs.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: release-report
+          path: ${{ runner.temp }}/release-report.jsonl
+          if-no-files-found: ignore
+          retention-days: 30
+
+  publish:
+    name: publish
+    needs: validate
+    if: needs.validate.outputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/${{ needs.validate.outputs.name }}/v/${{ needs.validate.outputs.version }}
+    permissions:
+      contents: read
+      id-token: write # mint the OIDC token for npm trusted publishing
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+
+      - name: Check the npm version
+        # Trusted publishing needs npm 11.5.1 or later; Node.js 24 bundles a
+        # newer one. Nothing is installed in this job, so an older npm fails.
+        run: |
+          node -e '
+            const [major, minor, patch] = require("node:child_process")
+              .execSync("npm --version").toString().trim().split(".").map(Number)
+            const ok = 11 < major || (11 === major && (5 < minor || (5 === minor && 1 <= patch)))
+            console.log("npm " + [major, minor, patch].join(".") + (ok ? "" : ": too old for trusted publishing"))
+            process.exit(ok ? 0 : 1)
+          '
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: package
+          path: ${{ runner.temp }}/package
+
+      - name: Check the tag again
+        env:
+          TAG: ${{ needs.validate.outputs.tag }}
+          SHA: ${{ needs.validate.outputs.sha }}
+        run: node "$CHECK" tag --tag "$TAG" --sha "$SHA"
+
+      - name: Check the tarball against the commit and the registry
+        id: verify
+        env:
+          TARBALL: ${{ runner.temp }}/package/${{ needs.validate.outputs.tarball_name }}
+          SHA256: ${{ needs.validate.outputs.sha256 }}
+          SHA: ${{ needs.validate.outputs.sha }}
+        run: node "$CHECK" verify-tarball --tarball "$TARBALL" --sha256 "$SHA256" --sha "$SHA"
+
+      # Run outside the checkout so that no repository .npmrc applies.
+      # npm logs why an OIDC exchange failed only at verbose level.
+      - name: Publish to npm
+        if: steps.verify.outputs.publish == 'true'
+        working-directory: ${{ runner.temp }}
+        env:
+          TARBALL: ${{ runner.temp }}/package/${{ needs.validate.outputs.tarball_name }}
+          DIST_TAG: ${{ needs.validate.outputs.dist_tag }}
+        run: npm publish "$TARBALL" --provenance --access public --tag "$DIST_TAG" --ignore-scripts --loglevel verbose
+
+  # npm scans a new version before it becomes visible: typically about five
+  # minutes, at peak times 15 minutes or more. The wait is here and not in
+  # the publish job, so that a re-run after a timeout needs no approval and
+  # never tries to publish a version that is still being scanned.
+  verify:
+    name: verify the published package
+    needs: [validate, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+
+      - name: Verify the published package
+        env:
+          NAME: ${{ needs.validate.outputs.name }}
+          VERSION: ${{ needs.validate.outputs.version }}
+          DIST_TAG: ${{ needs.validate.outputs.dist_tag }}
+        run: node "$CHECK" verify-published --name "$NAME" --version "$VERSION" --dist-tag "$DIST_TAG" --timeout 1800
+
+  github-release:
+    name: tag and GitHub release
+    needs: [validate, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # create the tag and the GitHub release
+
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: package
+          path: ${{ runner.temp }}/package
+
+      - name: Create the tag and the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          SHA: ${{ needs.validate.outputs.sha }}
+          PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+          NOTES: ${{ runner.temp }}/package/release-notes.md
+          TARBALL: ${{ runner.temp }}/package/${{ needs.validate.outputs.tarball_name }}
+        run: |
+          flags=(--title "$TAG")
+          if [ -s "$NOTES" ]; then flags+=(--notes-file "$NOTES"); fi
+          if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); fi
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" "${flags[@]}"
+          else
+            if [ ! -s "$NOTES" ]; then flags+=(--generate-notes); fi
+            # Creates the tag on the published commit when it does not exist.
+            gh release create "$TAG" --target "$SHA" "${flags[@]}"
+          fi
+          gh release upload "$TAG" "$TARBALL" --clobber
+          gh release view "$TAG" --json url --jq .url
